@@ -7,7 +7,7 @@ Shared development guidelines and configuration used across multiple coding proj
 Clone this repository to the expected location:
 
 ```bash
-git clone <repository-url> ~/.config/claude
+git clone https://github.com/mhiland/ClaudeConfiguration.git ~/.config/claude
 ```
 
 ## Purpose
