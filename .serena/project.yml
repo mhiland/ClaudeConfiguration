@@ -1,0 +1,3 @@
+name: Claude-Config
+language: python
+description: "Shared Claude Code configuration and development guidelines for multiple projects"

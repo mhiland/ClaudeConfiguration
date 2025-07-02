@@ -1,0 +1,17 @@
+# Serena cache (allow .serena/ but ignore cache)
+.serena/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS
+.DS_Store
+Thumbs.db

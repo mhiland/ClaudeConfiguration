@@ -130,6 +130,23 @@ python -Bc "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[c
 - Do NOT add "🤖 Generated with [Claude Code](https://claude.ai/code)" to commit messages
 - Keep commit messages concise and in imperative mood
 
+### Common .gitignore Patterns
+```gitignore
+# Serena cache (allow .serena/ but ignore cache)
+.serena/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+```
+
 ## Docker and Containerization
 - Use appropriate capabilities (`NET_ADMIN`, `NET_RAW`) for network tools
 - Mount host networks when required: `--net=host`
