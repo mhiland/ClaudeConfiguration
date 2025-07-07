@@ -15,3 +15,31 @@ pip-delete-this-directory.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code configuration files
+settings.local.json
+*.swp
+*.tmp
+.vim/
+.vscode/
+.idea/
+logs/
+*.log
+temp/
+tmp/
+cache/
+.cache/
+sessions/
+.sessions/
+history/
+.history/
+backups/
+.backups/
+local/
+projects/
+statsig/
+todos/
+.credentials.json
+ide/
+.claude/
+.serena/
