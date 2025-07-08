@@ -5,6 +5,14 @@
 
 set -e
 
+# Source debounce utility
+source ~/.claude/hooks/debounce.sh
+
+# Check if hook should run (debounce)
+if ! should_run_hook "security-validator"; then
+    exit 0
+fi
+
 # Trap for debugging silent failures
 trap 'echo "[SECURITY] Script failed at line $LINENO" >&2' ERR
 

@@ -13,6 +13,7 @@
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "8192",
     "CLAUDE_LOG_LEVEL": "error",
     "CLAUDE_HOOK_DEBOUNCE": "true",
+    "CLAUDE_HOOK_TIMEOUT": "5000",
     "CLAUDE_QUALITY_MODE": "file",
     "CLAUDE_SECURITY_MODE": "balanced"
   },
@@ -72,14 +73,30 @@
   },
   "model": "opus",
   "hooks": {
-    "PreToolUse": {
-      "matcher": "",
-      "command": "~/.claude/hooks/security-validator.sh"
-    },
-    "PostToolUse": {
-      "matcher": "",
-      "command": "~/.claude/hooks/quality-check.sh"
-    }
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/security-validator.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/quality-check.sh",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
   },
   "allowedTools": [
     "read_file",
