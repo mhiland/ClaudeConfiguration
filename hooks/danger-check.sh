@@ -40,8 +40,8 @@ log_danger() {
 
 # Parse JSON input to extract bash command details
 if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"')
-    DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"')
+    COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"' 2>/dev/null || echo "No command")
+    DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"' 2>/dev/null || echo "No description")
     
     # Check current git branch for production indicators
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")

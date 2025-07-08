@@ -118,7 +118,7 @@ is_binary_file() {
     local file_path="$1"
     if [[ -f "$file_path" ]]; then
         # Check if file contains null bytes (indicates binary)
-        if grep -q $'\0' "$file_path" 2>/dev/null; then
+        if grep -q "$(printf '\0')" "$file_path" 2>/dev/null; then
             return 0
         fi
     fi
@@ -127,16 +127,16 @@ is_binary_file() {
 
 # Parse JSON input to extract file operation details
 if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"')
+    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"' 2>/dev/null || echo "Unknown")
     
     # Extract file path based on tool type
     case "$TOOL_NAME" in
         "Write"|"Edit"|"MultiEdit")
-            FILE_PATH=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""')
+            FILE_PATH=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null || echo "")
             OPERATION="write/edit"
             ;;
         "Read")
-            FILE_PATH=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""')
+            FILE_PATH=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null || echo "")
             OPERATION="read"
             ;;
         *)
@@ -152,7 +152,7 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
         fi
         
         # Normalize path (remove .. and . components)
-        FILE_PATH=$(realpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
+        FILE_PATH=$(realpath "$FILE_PATH" 2>/dev/null || python3 -c "import os; print(os.path.abspath('$FILE_PATH'))" 2>/dev/null || echo "$FILE_PATH")
         
         log_validation "INFO" "File operation validation started" "$FILE_PATH" "$OPERATION"
         

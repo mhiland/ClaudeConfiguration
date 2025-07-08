@@ -12,6 +12,7 @@
     "ANTHROPIC_SMALL_FAST_MODEL": "claude-3-5-haiku-20241022",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "8192",
     "CLAUDE_LOG_LEVEL": "error",
+    "CLAUDE_HOOK_DEBOUNCE": "true",
     "CLAUDE_QUALITY_MODE": "file",
     "CLAUDE_SECURITY_MODE": "balanced"
   },
@@ -19,6 +20,7 @@
   "permissions": {
     "allow": [
       "Bash(git *)",
+      "Bash(glab *)",
       "Bash(python *)",
       "Bash(pytest *)",
       "Bash(docker *)",

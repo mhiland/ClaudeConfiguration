@@ -32,8 +32,8 @@ rotate_log() {
 # Parse JSON input to extract MCP tool details
 if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
     # Extract tool information from JSON
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown MCP Tool"')
-    TOOL_INPUT=$(echo "$CLAUDE_HOOK_INPUT" | jq -c '.tool_input // {}')
+    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown MCP Tool"' 2>/dev/null || echo "Unknown MCP Tool")
+    TOOL_INPUT=$(echo "$CLAUDE_HOOK_INPUT" | jq -c '.tool_input // {}' 2>/dev/null || echo '{}')
     
     # Rotate log if needed
     rotate_log

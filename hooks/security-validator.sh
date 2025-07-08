@@ -5,6 +5,9 @@
 
 set -e
 
+# Trap for debugging silent failures
+trap 'echo "[SECURITY] Script failed at line $LINENO" >&2' ERR
+
 # Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -124,8 +127,8 @@ log_security_event() {
     mkdir -p "$(dirname "$SECURITY_LOG")"
     
     # Create JSON log entry
-    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    local log_entry=$(jq -n \
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    log_entry=$(jq -n \
         --arg ts "$timestamp" \
         --arg lvl "$level" \
         --arg type "$event_type" \
@@ -136,7 +139,9 @@ log_security_event() {
         --arg branch "$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'no-git')" \
         '{timestamp: $ts, level: $lvl, event_type: $type, message: $msg, details: $det, context: {pwd: $pwd, user: $user, branch: $branch}}')
     
-    echo "$log_entry" >> "$SECURITY_LOG"
+    if ! echo "$log_entry" >> "$SECURITY_LOG" 2>/dev/null; then
+        echo "[SECURITY] Logging failed: $message" >&2
+    fi
 }
 
 # Display functions
@@ -156,7 +161,7 @@ info() {
 }
 
 debug() {
-    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[SECURITY-DEBUG] $1${NC}" >&2
+    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[SECURITY-DEBUG] $1${NC}" >&2 || true
 }
 
 # Function to check if path is sensitive
@@ -193,19 +198,43 @@ is_safe_extension() {
 }
 
 # Parse input and determine check type
-if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // ""')
+# Read JSON input from stdin
+if [[ -t 0 ]]; then
+    # No stdin input (running interactively)
+    debug "No stdin input provided - likely running in test mode"
+    exit 0
+fi
+
+# Read all stdin input
+HOOK_INPUT=$(cat)
+
+if [[ -n "$HOOK_INPUT" ]]; then
+    # Validate JSON input first
+    if ! echo "$HOOK_INPUT" | jq . >/dev/null 2>&1; then
+        debug "Invalid JSON input: $HOOK_INPUT"
+        exit 0
+    fi
+    
+    TOOL_NAME=$(echo "$HOOK_INPUT" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
     
     case "$TOOL_NAME" in
         Write|Edit|MultiEdit|Read)
             # File operation checks
-            FILE_PATH=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""')
-            OPERATION=$([[ "$TOOL_NAME" == "Read" ]] && echo "read" || echo "write")
+            FILE_PATH=$(echo "$HOOK_INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null || echo "")
+            if [[ -z "$FILE_PATH" ]]; then
+                debug "No file path provided for file operation"
+                exit 0
+            fi
+            if [[ "$TOOL_NAME" == "Read" ]]; then
+                OPERATION="read"
+            else
+                OPERATION="write"
+            fi
             
             if [[ -n "$FILE_PATH" ]]; then
                 # Normalize path
                 [[ "$FILE_PATH" != /* ]] && FILE_PATH="$(pwd)/$FILE_PATH"
-                FILE_PATH=$(realpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
+                FILE_PATH=$(realpath "$FILE_PATH" 2>/dev/null || python3 -c "import os; print(os.path.abspath('$FILE_PATH'))" 2>/dev/null || echo "$FILE_PATH")
                 
                 debug "Checking file operation: $OPERATION on $FILE_PATH"
                 
@@ -238,7 +267,7 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
                 
                 # Check file size for reads
                 if [[ "$OPERATION" == "read" && -f "$FILE_PATH" ]]; then
-                    local file_size=$(stat -c%s "$FILE_PATH" 2>/dev/null || stat -f%z "$FILE_PATH" 2>/dev/null || echo 0)
+                    file_size=$(stat -c%s "$FILE_PATH" 2>/dev/null || stat -f%z "$FILE_PATH" 2>/dev/null || echo 0)
                     if [[ $file_size -gt 10485760 ]]; then  # 10MB
                         warn "⚠️  WARNING: Reading large file ($(($file_size/1048576))MB)" "large_file" "$FILE_PATH"
                     fi
@@ -250,7 +279,11 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
             
         Bash)
             # Command execution checks
-            COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // ""')
+            COMMAND=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
+            if [[ -z "$COMMAND" ]]; then
+                debug "No command provided for bash operation"
+                exit 0
+            fi
             
             if [[ -n "$COMMAND" ]]; then
                 debug "Checking bash command: $COMMAND"
@@ -271,7 +304,7 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
                             exit 1
                         else
                             # Check if in production branch
-                            local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+                            branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
                             if [[ "$branch" =~ (main|master|prod|production) ]]; then
                                 error "❌ BLOCKED: Dangerous command in production branch" "dangerous_command_prod" "$COMMAND"
                                 exit 1
@@ -301,7 +334,10 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
             ;;
     esac
 else
-    debug "No input provided to security validator"
+    # If no input provided, this is likely a PreToolUse hook without context
+    # Just exit successfully since there's nothing to validate
+    debug "No input provided to security validator - likely PreToolUse without context"
+    exit 0
 fi
 
 # Success - allow operation

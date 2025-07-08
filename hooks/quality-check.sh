@@ -5,6 +5,9 @@
 
 set -e
 
+# Trap for debugging silent failures
+trap 'echo "[QUALITY] Script failed at line $LINENO" >&2' ERR
+
 # Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,7 +35,7 @@ if [[ "$QUALITY_MODE" == "off" ]]; then
 fi
 
 log() {
-    [[ "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2
+    [[ "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2 || true
 }
 
 error() {
@@ -40,25 +43,46 @@ error() {
 }
 
 success() {
-    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${GREEN}[SUCCESS] $1${NC}" >&2
+    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${GREEN}[SUCCESS] $1${NC}" >&2 || true
 }
 
 warn() {
-    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${YELLOW}[WARN] $1${NC}" >&2
+    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${YELLOW}[WARN] $1${NC}" >&2 || true
 }
 
 debug() {
-    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[DEBUG] $1${NC}" >&2
+    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[DEBUG] $1${NC}" >&2 || true
 }
 
-# Extract edited file from hook input
+# Extract edited file from hook input via stdin
 EDITED_FILE=""
-if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // ""')
-    if [[ "$TOOL_NAME" =~ ^(Write|Edit|MultiEdit)$ ]]; then
-        EDITED_FILE=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.file_path // ""')
-        debug "Extracted edited file: $EDITED_FILE"
-    fi
+if [[ -t 0 ]]; then
+    # No stdin input (running interactively)
+    debug "No stdin input - running interactively"
+    exit 0
+fi
+
+# Read all stdin input
+HOOK_INPUT=$(cat)
+
+if [[ -z "$HOOK_INPUT" ]]; then
+    debug "No hook input received"
+    exit 0
+fi
+
+# Validate JSON input
+if ! echo "$HOOK_INPUT" | jq . >/dev/null 2>&1; then
+    debug "Invalid JSON input received"
+    exit 0
+fi
+
+TOOL_NAME=$(echo "$HOOK_INPUT" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
+if [[ "$TOOL_NAME" =~ ^(Write|Edit|MultiEdit)$ ]]; then
+    EDITED_FILE=$(echo "$HOOK_INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null || echo "")
+    debug "Extracted edited file: $EDITED_FILE"
+else
+    debug "Tool $TOOL_NAME not relevant for quality checks"
+    exit 0
 fi
 
 # Check if we're in a git repository
@@ -99,7 +123,7 @@ check_python_file() {
     # Run pylint on single file
     if command -v pylint &> /dev/null; then
         log "Running pylint on $file..."
-        if ! pylint $pylint_args --fail-under=$pylint_threshold "$file" 2>/dev/null; then
+        if ! pylint ${pylint_args:+$pylint_args} --fail-under=$pylint_threshold "$file" 2>/dev/null; then
             error "Pylint issues in $file (threshold: $pylint_threshold)"
             CHECKS_FAILED=true
         else
@@ -235,6 +259,7 @@ if [[ "$CHECKS_FAILED" == "true" ]]; then
         warn "Continuing despite failures (check mode)"
         exit 0
     else
+        echo "[QUALITY] Exiting with error due to failed checks" >&2
         exit 1
     fi
 else

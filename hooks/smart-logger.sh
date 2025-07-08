@@ -10,6 +10,8 @@ LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}  # error, warn, info, debug
 UNIFIED_LOG="$HOME/.claude/logs/unified.json"
 MAX_LOG_SIZE=10485760  # 10MB
 BACKUP_COUNT=3
+DEBOUNCE_FILE="/tmp/.claude_hook_debounce"
+DEBOUNCE_SECONDS=1
 
 # Early exit if hooks are bypassed
 if [[ "$BYPASS_HOOKS" == "true" ]]; then
@@ -21,13 +23,24 @@ if [[ "$LOG_LEVEL" == "off" ]]; then
     exit 0
 fi
 
+# Simple debouncing to prevent excessive hook calls
+HOOK_DEBOUNCE=${CLAUDE_HOOK_DEBOUNCE:-false}
+if [[ "$HOOK_DEBOUNCE" == "true" ]] && [[ -f "$DEBOUNCE_FILE" ]]; then
+    last_run=$(stat -c%Y "$DEBOUNCE_FILE" 2>/dev/null || stat -f%m "$DEBOUNCE_FILE" 2>/dev/null || echo 0)
+    current_time=$(date +%s)
+    if (( current_time - last_run < DEBOUNCE_SECONDS )); then
+        exit 0  # Skip this execution if within debounce period
+    fi
+fi
+[[ "$HOOK_DEBOUNCE" == "true" ]] && touch "$DEBOUNCE_FILE" 2>/dev/null || true
+
 # Ensure log directory exists
 mkdir -p "$(dirname "$UNIFIED_LOG")"
 
 # Function to rotate logs if needed
 rotate_log() {
     if [[ -f "$UNIFIED_LOG" ]]; then
-        local log_size=$(stat -c%s "$UNIFIED_LOG" 2>/dev/null || stat -f%z "$UNIFIED_LOG" 2>/dev/null || echo 0)
+        log_size=$(stat -c%s "$UNIFIED_LOG" 2>/dev/null || stat -f%z "$UNIFIED_LOG" 2>/dev/null || echo 0)
         if [[ $log_size -gt $MAX_LOG_SIZE ]]; then
             for i in $(seq $((BACKUP_COUNT-1)) -1 1); do
                 [[ -f "${UNIFIED_LOG}.$i" ]] && mv "${UNIFIED_LOG}.$i" "${UNIFIED_LOG}.$((i+1))"
@@ -59,10 +72,18 @@ should_log() {
     esac
 }
 
-# Parse input
-if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "unknown"')
-    TOOL_INPUT=$(echo "$CLAUDE_HOOK_INPUT" | jq -c '.tool_input // {}')
+# Parse input from stdin
+if [[ -t 0 ]]; then
+    # No stdin input (running interactively)
+    exit 0
+fi
+
+# Read all stdin input
+HOOK_INPUT=$(cat)
+
+if [[ -n "$HOOK_INPUT" ]]; then
+    TOOL_NAME=$(echo "$HOOK_INPUT" | jq -r '.tool_name // "unknown"' 2>/dev/null || echo "unknown")
+    TOOL_INPUT=$(echo "$HOOK_INPUT" | jq -c '.tool_input // {}' 2>/dev/null || echo '{}')
     
     # Determine event type and level based on tool
     EVENT_TYPE="tool_use"
@@ -71,9 +92,9 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
     
     case "$TOOL_NAME" in
         Bash)
-            COMMAND=$(echo "$TOOL_INPUT" | jq -r '.command // ""')
-            DESCRIPTION=$(echo "$TOOL_INPUT" | jq -r '.description // ""')
-            EVENT_DETAILS=$(jq -n --arg cmd "$COMMAND" --arg desc "$DESCRIPTION" '{command: $cmd, description: $desc}')
+            COMMAND=$(echo "$TOOL_INPUT" | jq -r '.command // ""' 2>/dev/null || echo "")
+            DESCRIPTION=$(echo "$TOOL_INPUT" | jq -r '.description // ""' 2>/dev/null || echo "")
+            EVENT_DETAILS=$(jq -n --arg cmd "$COMMAND" --arg desc "$DESCRIPTION" '{command: $cmd, description: $desc}' 2>/dev/null || echo '{}')
             
             # Determine level based on command
             if [[ "$COMMAND" =~ (rm -rf|sudo|dd if=|mkfs|fdisk) ]]; then
@@ -88,8 +109,8 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
             ;;
             
         Write|Edit|MultiEdit)
-            FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // ""')
-            EVENT_DETAILS=$(jq -n --arg path "$FILE_PATH" '{file_path: $path}')
+            FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // ""' 2>/dev/null || echo "")
+            EVENT_DETAILS=$(jq -n --arg path "$FILE_PATH" '{file_path: $path}' 2>/dev/null || echo '{}')
             EVENT_TYPE="file_write"
             
             # Check for sensitive files
@@ -100,8 +121,8 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
             ;;
             
         Read)
-            FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // ""')
-            EVENT_DETAILS=$(jq -n --arg path "$FILE_PATH" '{file_path: $path}')
+            FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // ""' 2>/dev/null || echo "")
+            EVENT_DETAILS=$(jq -n --arg path "$FILE_PATH" '{file_path: $path}' 2>/dev/null || echo '{}')
             EVENT_TYPE="file_read"
             EVENT_LEVEL="debug"  # Reads are low priority
             ;;
@@ -146,10 +167,10 @@ if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
                     git_branch: $branch,
                     git_commit: $commit
                 }
-            }')
+            }' 2>/dev/null || echo '{"error":"jq_failed","timestamp":"'$TIMESTAMP'","tool":"'$TOOL_NAME'"}')
         
         # Append to log file
-        echo "$LOG_ENTRY" >> "$UNIFIED_LOG"
+        echo "$LOG_ENTRY" >> "$UNIFIED_LOG" 2>/dev/null || echo "[LOG] Failed to write to $UNIFIED_LOG" >&2
         
         # Output minimal feedback based on log level
         if [[ "$LOG_LEVEL" == "debug" ]]; then

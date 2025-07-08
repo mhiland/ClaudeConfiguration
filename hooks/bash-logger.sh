@@ -32,9 +32,9 @@ rotate_log() {
 # Parse JSON input to extract bash command details
 if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
     # Extract command and description from JSON
-    COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"')
-    DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"')
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"')
+    COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"' 2>/dev/null || echo "No command")
+    DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"' 2>/dev/null || echo "No description")
+    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"' 2>/dev/null || echo "Unknown")
     
     # Rotate log if needed
     rotate_log

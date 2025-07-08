@@ -110,11 +110,11 @@ is_deployment_command() {
 
 # Parse JSON input to extract command details
 if [[ -n "$CLAUDE_HOOK_INPUT" ]]; then
-    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"')
+    TOOL_NAME=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_name // "Unknown"' 2>/dev/null || echo "Unknown")
     
     if [[ "$TOOL_NAME" == "Bash" ]]; then
-        COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"')
-        DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"')
+        COMMAND=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.command // "No command"' 2>/dev/null || echo "No command")
+        DESCRIPTION=$(echo "$CLAUDE_HOOK_INPUT" | jq -r '.tool_input.description // "No description"' 2>/dev/null || echo "No description")
         
         # Check if this is a deployment-related command
         if is_deployment_command "$COMMAND"; then
