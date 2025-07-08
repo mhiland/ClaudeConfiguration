@@ -30,7 +30,7 @@ Central Claude Code configuration with comprehensive development guidelines for 
 ## Claude Code Hooks Configuration
 
 ### Automated Quality Checks
-Create `~/.config/claude/settings.json` with hook configuration:
+Create `~/.claude/settings.json` with hook configuration:
 
 ```json
 {
@@ -38,14 +38,14 @@ Create `~/.config/claude/settings.json` with hook configuration:
     "postToolUse": {
       "enabled": true,
       "triggers": ["Write", "Edit", "MultiEdit"],
-      "command": "~/.config/claude/hooks/quality-check.sh"
+      "command": "~/.claude/hooks/quality-check.sh"
     }
   }
 }
 ```
 
 ### Example Quality Check Hook
-Create `~/.config/claude/hooks/quality-check.sh`:
+Create `~/.claude/hooks/quality-check.sh`:
 
 ```bash
 #!/bin/bash
@@ -139,7 +139,7 @@ python -Bc "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[c
 ## Custom Commands
 
 ### `/check` - Aggressive Quality Enforcement
-Located in `~/.config/claude/commands/check.md`, this command implements zero-tolerance quality enforcement:
+Located in `~/.claude/commands/check.md`, this command implements zero-tolerance quality enforcement:
 
 - **Auto-fixes ALL formatting issues** with autopep8
 - **Enforces strict linting standards**: Backend 10.0/10 pylint, Frontend 7.0+
@@ -260,6 +260,7 @@ Thumbs.db
 - Use `docs/` folder for feature documentation
 - Maintain module-specific guides (`backend/CLAUDE.md`, `frontend/CLAUDE.md`)
 - Update documentation when introducing new patterns or architectures
+- **Documentation and MD files should be in a docs/ folder**
 
 ### Documentation Update Guidelines
 

@@ -1,16 +1,34 @@
-# `/check` - Aggressive Quality Enforcement Command
+# `/check` - Aggressive Quality Enforcement Command (OPTIMIZED)
 
 **THIS IS NOT A REPORTING TASK - THIS IS A FIXING TASK!**
 
 ## Mission
 Fix ALL code quality issues until EVERY check passes. Zero tolerance for warnings, errors, or style violations.
 
+## CRITICAL: Bypass Hook Configuration
+To prevent circular loops and improve performance, this command sets:
+```bash
+export CLAUDE_HOOK_BYPASS=true  # Disable hooks during fixing phase
+export CLAUDE_OPERATION_CONTEXT=check  # Mark this as a check operation
+export CLAUDE_QUALITY_MODE=file  # Only check edited files during fixes
+```
+
 ## Mandatory Actions
 
-### 1. Initial Assessment
-- Identify ALL errors, warnings, and style violations
+### 1. Initial Assessment (WITH FULL PROJECT SCAN)
+```bash
+# Temporarily enable project mode for initial scan
+export CLAUDE_QUALITY_MODE=project
+export CLAUDE_HOOK_BYPASS=false
+```
+- Run ALL quality tools on entire project
 - Document every single issue found
 - Create fixing strategy using multiple agents if needed
+```bash
+# Re-enable bypass for fixing phase
+export CLAUDE_HOOK_BYPASS=true
+export CLAUDE_QUALITY_MODE=file
+```
 
 ### 2. Python Quality Enforcement
 
@@ -46,8 +64,11 @@ Fix ALL code quality issues until EVERY check passes. Zero tolerance for warning
 
 ### 6. Auto-Fixing Protocol
 
-**Immediate Auto-Fixes:**
+**Immediate Auto-Fixes (WITH BYPASS ENABLED):**
 ```bash
+# Ensure bypass is active
+export CLAUDE_HOOK_BYPASS=true
+
 # Format all Python code automatically
 autopep8 --in-place --recursive --max-line-length=120 .
 
@@ -56,20 +77,28 @@ autopep8 --in-place --recursive --max-line-length=120 .
 ```
 
 **Agent Delegation:**
+- Each agent MUST set `CLAUDE_HOOK_BYPASS=true`
 - Spawn specialized agents for complex pylint issues
 - Use separate agents for different file types
 - Continue until ALL agents report success
 
-### 7. Verification Loop
+### 7. Final Verification (WITH FULL PROJECT SCAN)
 
-**MUST repeat until ALL checks pass:**
-1. Run pylint - FIX any issues
-2. Run flake8 - FIX any issues  
-3. Run autopep8 - APPLY all fixes
-4. Run pip-audit - UPDATE packages if needed
-5. Run jshint - FIX JavaScript issues
-6. Validate HTML - FIX template issues
-7. Run tests if present - FIX any failures
+**After all fixes are complete:**
+```bash
+# Disable bypass for final verification
+export CLAUDE_HOOK_BYPASS=false
+export CLAUDE_QUALITY_MODE=project
+```
+
+**MUST verify all checks pass:**
+1. Run pylint - MUST pass thresholds
+2. Run flake8 - MUST have zero violations
+3. Run autopep8 - MUST show no changes needed
+4. Run pip-audit - MUST show zero vulnerabilities
+5. Run jshint - MUST have zero warnings/errors
+6. Validate HTML - MUST pass validation
+7. Run tests if present - MUST all pass
 
 **Exit Criteria:**
 - ✅ Pylint: Backend 10.0/10, Frontend 7.0+, General 8.0+
@@ -93,11 +122,13 @@ autopep8 --in-place --recursive --max-line-length=120 .
 - Plan auto-fixes vs manual interventions
 
 ### Implementation Phase
+- **ALWAYS set `CLAUDE_HOOK_BYPASS=true` during fixes**
 - Fix issues systematically, not randomly
 - Validate each fix before moving to next
 - Use TodoWrite to track fixing progress
 
 ### Agent Usage
+- **Each agent MUST include bypass environment setup**
 - Spawn agents for complex refactoring
 - Use parallel agents for different problem domains
 - Each agent MUST achieve their specific quality targets
@@ -108,6 +139,7 @@ autopep8 --in-place --recursive --max-line-length=120 .
 - ❌ Ignoring security vulnerabilities
 - ❌ Partial fixes that break other code
 - ❌ Adding temporary workarounds instead of real fixes
+- ❌ **Forgetting to set `CLAUDE_HOOK_BYPASS=true` during fixes**
 
 ## Success Criteria
 Command is ONLY complete when:
@@ -116,19 +148,22 @@ Command is ONLY complete when:
 3. ALL manual issues have been properly resolved
 4. Code maintains or improves functionality
 5. No regressions introduced during fixing
+6. Final verification passes with bypass disabled
 
 ## Example Usage Flow
 ```
 User: /check
 Claude: 
-1. Running comprehensive quality assessment...
-2. Found 15 pylint issues, 8 flake8 violations, 3 security issues
-3. Spawning fixing agents...
-4. Agent 1: Fixing pylint issues in backend/
-5. Agent 2: Fixing flake8 violations
-6. Agent 3: Updating vulnerable packages
-7. Re-running all checks...
-8. ✅ ALL CHECKS PASSED - Code quality enforcement complete!
+1. Setting CLAUDE_HOOK_BYPASS=true for fixing phase...
+2. Running comprehensive quality assessment (project mode)...
+3. Found 15 pylint issues, 8 flake8 violations, 3 security issues
+4. Spawning fixing agents with bypass enabled...
+5. Agent 1: Fixing pylint issues in backend/ (bypass active)
+6. Agent 2: Fixing flake8 violations (bypass active)
+7. Agent 3: Updating vulnerable packages (bypass active)
+8. All fixes complete, disabling bypass for final verification...
+9. Running final project-wide quality checks...
+10. ✅ ALL CHECKS PASSED - Code quality enforcement complete!
 ```
 
-**Remember: This is about FIXING, not reporting. Every issue found MUST be resolved.**
+**Remember: This is about FIXING efficiently without circular loops. Set bypass during fixes, disable for final verification.**
