@@ -5,11 +5,19 @@
 
 set -e
 
-# Source debounce utility
+# Source utilities
 source ~/.claude/hooks/debounce.sh
+source ~/.claude/hooks/monitor.sh
 
 # Check if hook should run (debounce)
 if ! should_run_hook "quality-check"; then
+    exit 0
+fi
+
+# Check emergency brake
+if is_emergency_brake_active "quality-check"; then
+    warn "Emergency brake active for quality-check hook"
+    log_hook_event "quality-check" "brake" "" 0 "Emergency brake prevented execution"
     exit 0
 fi
 
@@ -29,6 +37,8 @@ BYPASS_HOOKS=${CLAUDE_HOOK_BYPASS:-false}
 QUALITY_MODE=${CLAUDE_QUALITY_MODE:-file}  # file, project, off
 OPERATION_CONTEXT=${CLAUDE_OPERATION_CONTEXT:-edit}  # edit, check, batch
 LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}  # error, warn, info, debug
+AUTO_FIX=${CLAUDE_AUTO_FIX:-true}  # Enable automatic fix suggestions
+OUTPUT_FORMAT=${CLAUDE_HOOK_OUTPUT_FORMAT:-mixed}  # human, json, mixed
 
 # Early exit if hooks are bypassed
 if [[ "$BYPASS_HOOKS" == "true" ]]; then
@@ -101,6 +111,49 @@ fi
 
 # Track if any checks failed
 CHECKS_FAILED=false
+declare -a QUALITY_ISSUES
+declare -a FIX_COMMANDS
+
+# Function to add quality issue
+add_quality_issue() {
+    local issue_type="$1"
+    local file_path="$2"
+    local details="$3"
+    local fix_command="$4"
+    
+    QUALITY_ISSUES+=("$issue_type:$file_path:$details")
+    [[ -n "$fix_command" ]] && FIX_COMMANDS+=("$fix_command")
+}
+
+# Function to generate JSON output
+generate_json_output() {
+    local file_path="$1"
+    local status="$2"
+    
+    cat << EOF
+{
+  "hook": "quality-check",
+  "timestamp": "$(date -Iseconds)",
+  "file": "$file_path",
+  "status": "$status",
+  "issues": [
+$(for issue in "${QUALITY_ISSUES[@]}"; do
+    IFS=':' read -r type file details <<< "$issue"
+    echo "    {\"type\": \"$type\", \"file\": \"$file\", \"details\": \"$details\"}"
+    [[ "$issue" != "${QUALITY_ISSUES[-1]}" ]] && echo ","
+done)
+  ],
+  "fixes": [
+$(for i in "${!FIX_COMMANDS[@]}"; do
+    echo "    {\"command\": \"${FIX_COMMANDS[$i]}\", \"order\": $((i+1))}"
+    [[ $i -lt $((${#FIX_COMMANDS[@]}-1)) ]] && echo ","
+done)
+  ],
+  "auto_fix_enabled": $AUTO_FIX,
+  "operation_context": "$OPERATION_CONTEXT"
+}
+EOF
+}
 
 # Function to check Python file
 check_python_file() {
@@ -133,6 +186,7 @@ check_python_file() {
         log "Running pylint on $file..."
         if ! pylint ${pylint_args:+$pylint_args} --fail-under=$pylint_threshold "$file" 2>/dev/null; then
             error "Pylint issues in $file (threshold: $pylint_threshold)"
+            add_quality_issue "pylint" "$file" "Score below $pylint_threshold" "pylint $file"
             CHECKS_FAILED=true
         else
             success "Pylint passed for $file"
@@ -144,6 +198,7 @@ check_python_file() {
         log "Running flake8 on $file..."
         if ! flake8 --max-line-length=120 --ignore=E501,W503,W504 "$file" 2>/dev/null; then
             error "Flake8 issues in $file"
+            add_quality_issue "flake8" "$file" "Style violations detected" "flake8 --max-line-length=120 --ignore=E501,W503,W504 $file"
             CHECKS_FAILED=true
         else
             success "Flake8 passed for $file"
@@ -155,7 +210,7 @@ check_python_file() {
         log "Checking formatting for $file..."
         if autopep8 --diff --max-line-length=120 "$file" | grep -q .; then
             error "Formatting issues in $file"
-            echo "Fix with: autopep8 --in-place --max-line-length=120 $file"
+            add_quality_issue "formatting" "$file" "Code formatting issues detected" "autopep8 --in-place --max-line-length=120 $file"
             CHECKS_FAILED=true
         else
             success "Formatting correct for $file"
@@ -219,6 +274,9 @@ run_project_checks() {
     return 0
 }
 
+# Start monitoring
+start_monitoring "quality-check" "$EDITED_FILE"
+
 # Main logic
 if [[ "$QUALITY_MODE" == "project" ]]; then
     # Full project mode explicitly requested
@@ -227,6 +285,7 @@ if [[ "$QUALITY_MODE" == "project" ]]; then
 elif [[ -z "$EDITED_FILE" && "$QUALITY_MODE" == "file" ]]; then
     # No file to check in file mode - this is normal for some operations
     debug "No specific file to check, skipping quality checks"
+    end_monitoring "quality-check" "" "bypass" "No file to check"
     exit 0
 elif [[ -n "$EDITED_FILE" && "$QUALITY_MODE" == "file" ]]; then
     # File-specific mode
@@ -235,6 +294,7 @@ elif [[ -n "$EDITED_FILE" && "$QUALITY_MODE" == "file" ]]; then
     # Skip checks for non-code files
     if [[ "$EDITED_FILE" =~ \.(md|txt|json|yml|yaml|cfg|ini|conf|lock)$ ]]; then
         log "Skipping quality checks for non-code file: $EDITED_FILE"
+        end_monitoring "quality-check" "$EDITED_FILE" "bypass" "Non-code file type"
         exit 0
     fi
     
@@ -262,15 +322,56 @@ fi
 # Final result
 if [[ "$CHECKS_FAILED" == "true" ]]; then
     error "Quality checks failed for $EDITED_FILE"
+    
+    # Record failure for emergency brake tracking
+    record_hook_failure "quality-check"
+    
+    # Generate structured output based on format preference
+    if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+        generate_json_output "$EDITED_FILE" "failed"
+    elif [[ "$OUTPUT_FORMAT" == "mixed" ]]; then
+        # Human-readable section
+        echo ""
+        echo "CLAUDE CODE: Fix the following issues immediately:"
+        for i in "${!FIX_COMMANDS[@]}"; do
+            echo "$((i+1)). Run: ${FIX_COMMANDS[$i]}"
+        done
+        echo "$((${#FIX_COMMANDS[@]}+1)). Re-run the tool that triggered this hook"
+        echo ""
+        
+        # Machine-readable section
+        echo "=== HOOK_OUTPUT_JSON ==="
+        generate_json_output "$EDITED_FILE" "failed"
+        echo "=== END_HOOK_OUTPUT_JSON ==="
+    else
+        # Human-readable only
+        echo ""
+        echo "CLAUDE CODE: Fix the following issues immediately:"
+        for i in "${!FIX_COMMANDS[@]}"; do
+            echo "$((i+1)). Run: ${FIX_COMMANDS[$i]}"
+        done
+        echo "$((${#FIX_COMMANDS[@]}+1)). Re-run the tool that triggered this hook"
+        echo ""
+    fi
+    
     # In check mode, we might want to continue despite failures
     if [[ "$OPERATION_CONTEXT" == "check" ]]; then
         warn "Continuing despite failures (check mode)"
+        end_monitoring "quality-check" "$EDITED_FILE" "failure" "Check mode - continuing despite failures"
         exit 0
     else
-        echo "[QUALITY] Exiting with error due to failed checks" >&2
+        echo "[QUALITY] CLAUDE CODE MUST FIX THESE ISSUES BEFORE PROCEEDING" >&2
+        end_monitoring "quality-check" "$EDITED_FILE" "failure" "Quality checks failed - ${#QUALITY_ISSUES[@]} issues found"
         exit 1
     fi
 else
+    # Record success to reset failure count
+    record_hook_success "quality-check"
+    
+    if [[ "$OUTPUT_FORMAT" == "json" || "$OUTPUT_FORMAT" == "mixed" ]]; then
+        generate_json_output "$EDITED_FILE" "passed"
+    fi
     success "Quality checks passed!"
+    end_monitoring "quality-check" "$EDITED_FILE" "success" "All quality checks passed"
     exit 0
 fi
