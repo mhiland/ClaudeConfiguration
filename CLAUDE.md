@@ -30,69 +30,81 @@ Central Claude Code configuration with comprehensive development guidelines for 
 
 ## Claude Code Hooks Configuration
 
-### Automated Quality Checks
-Create `~/.claude/settings.json` with hook configuration:
+### Pre-commit Quality Checks
+Quality checks now run before git commits using PreToolUse hooks:
 
 ```json
 {
   "hooks": {
-    "postToolUse": {
-      "enabled": true,
-      "triggers": ["Write", "Edit", "MultiEdit"],
-      "command": "~/.claude/hooks/quality-check.sh"
-    }
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-commit-quality.sh",
+            "timeout": 15000
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### Example Quality Check Hook
-Create `~/.claude/hooks/quality-check.sh`:
+### Quality Check Response Protocol
+When pre-commit hooks block a commit with quality issues:
 
+1. **Read the error output** - Hook provides specific fix commands
+2. **Run the suggested fixes** - Execute each command shown
+3. **Stage the fixed files** - `git add <fixed-files>`
+4. **Retry the commit** - Re-run the original commit command
+
+**Example workflow:**
 ```bash
-#!/bin/bash
-# Auto-detect project type and run appropriate quality checks
-set -e
+# Commit blocked by quality issues
+git commit -m "fix: update feature"
+# Hook shows: "Run: autopep8 --in-place --max-line-length=120 file.py"
 
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Fix the issues
+autopep8 --in-place --max-line-length=120 file.py
+git add file.py
 
-echo -e "${YELLOW}Running quality checks...${NC}"
-
-# Python projects
-if [[ -f "requirements.txt" || -f "pyproject.toml" || -f "setup.py" ]]; then
-    echo -e "${GREEN}Python project detected${NC}"
-
-    # Python linting with pylint and flake8
-    if command -v pylint &> /dev/null; then
-        pylint --fail-under=8.0 . || (echo -e "${RED}Pylint issues found${NC}" && exit 1)
-    fi
-    if command -v flake8 &> /dev/null; then
-        flake8 --max-line-length=120 --ignore=E501,W503,W504 . || (echo -e "${RED}Flake8 issues found${NC}" && exit 1)
-    fi
-    if command -v autopep8 &> /dev/null; then
-        autopep8 --diff --recursive --max-line-length=120 . | grep -q . && (echo -e "${RED}Format issues. Run: autopep8 --in-place --recursive --max-line-length=120 .${NC}" && exit 1)
-    fi
-
-    # Security scanning
-    if command -v pip-audit &> /dev/null; then
-        pip-audit || (echo -e "${RED}pip-audit found vulnerabilities${NC}" && exit 1)
-    fi
-fi
-
-# JavaScript/Node projects
-if [[ -f "package.json" ]]; then
-    echo -e "${GREEN}JavaScript project detected${NC}"
-    if command -v npm &> /dev/null && npm list eslint &> /dev/null; then
-        npm run lint || (echo -e "${RED}ESLint issues found${NC}" && exit 1)
-    fi
-fi
-
-
-echo -e "${GREEN}Quality checks passed!${NC}"
+# Retry commit
+git commit -m "fix: update feature"
 ```
+
+### Unified Quality Standards
+All quality tools now use shared standards from `~/.claude/hooks/quality-lib.sh`:
+
+**Python Quality Standards:**
+- **Pylint Thresholds**: 
+  - Backend: 10.0/10
+  - Frontend: 7.0/10
+  - General: 8.0/10
+- **Flake8**: `--max-line-length=120 --ignore=E501,W503,W504`
+- **Autopep8**: `--max-line-length=120`
+
+**JavaScript Quality Standards:**
+- **JSHint**: Standard validation
+- **Target**: `frontend/static/js/` directory
+
+**HTML Quality Standards:**
+- **html5lib**: HTML5 validation
+- **Target**: All HTML templates
+
+**Security Standards:**
+- **pip-audit**: Zero vulnerabilities required
+
+### Quality Tools Integration
+All quality tools now use the shared library:
+- `hooks/pre-commit-quality.sh` - Pre-commit guard
+- `hooks/quality-check.sh` - PostToolUse hook
+- `commands/check.md` - Aggressive quality enforcement
+- `commands/quality/format.md` - Formatting command
+- `commands/quality/lint.md` - Linting command
+
+This ensures consistent quality standards across all tools and eliminates code duplication.
 
 ## Development Tools
 

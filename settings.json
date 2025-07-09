@@ -82,20 +82,19 @@
             "timeout": 5000
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Bash(git commit*)",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/quality-check.sh",
-            "timeout": 10000
+            "command": "~/.claude/hooks/pre-commit-quality.sh",
+            "timeout": 15000
           }
         ]
       }
-    ]
+    ],
+    "PostToolUse": []
   },
   "allowedTools": [
     "read_file",

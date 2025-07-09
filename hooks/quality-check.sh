@@ -8,6 +8,7 @@ set -e
 # Source utilities
 source ~/.claude/hooks/debounce.sh
 source ~/.claude/hooks/monitor.sh
+source ~/.claude/hooks/quality-lib.sh
 
 # Check if hook should run (debounce)
 if ! should_run_hook "quality-check"; then
@@ -24,12 +25,8 @@ fi
 # Trap for debugging silent failures
 trap 'echo "[QUALITY] Script failed at line $LINENO" >&2' ERR
 
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Color output (from quality-lib.sh)
+# RED, GREEN, YELLOW, BLUE, NC are defined in quality-lib.sh
 
 # Configuration
 VERBOSE=${CLAUDE_HOOK_VERBOSE:-false}
@@ -41,36 +38,18 @@ AUTO_FIX=${CLAUDE_AUTO_FIX:-true}  # Enable automatic fix suggestions
 OUTPUT_FORMAT=${CLAUDE_HOOK_OUTPUT_FORMAT:-mixed}  # human, json, mixed
 
 # Early exit if hooks are bypassed
-if [[ "$BYPASS_HOOKS" == "true" ]]; then
-    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[QUALITY] Hook bypassed by CLAUDE_HOOK_BYPASS${NC}" >&2
+if should_bypass_hooks; then
+    debug "Hook bypassed by CLAUDE_HOOK_BYPASS"
     exit 0
 fi
 
 # Early exit if quality checks are off
-if [[ "$QUALITY_MODE" == "off" ]]; then
-    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[QUALITY] Quality checks disabled${NC}" >&2
+if is_quality_mode_off; then
+    debug "Quality checks disabled"
     exit 0
 fi
 
-log() {
-    [[ "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2 || true
-}
-
-error() {
-    echo -e "${RED}[ERROR] $1${NC}" >&2
-}
-
-success() {
-    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${GREEN}[SUCCESS] $1${NC}" >&2 || true
-}
-
-warn() {
-    [[ "$LOG_LEVEL" != "error" ]] && echo -e "${YELLOW}[WARN] $1${NC}" >&2 || true
-}
-
-debug() {
-    [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[DEBUG] $1${NC}" >&2 || true
-}
+# Logging functions are now provided by quality-lib.sh
 
 # Extract edited file from hook input via stdin
 EDITED_FILE=""
@@ -155,114 +134,9 @@ done)
 EOF
 }
 
-# Function to check Python file
-check_python_file() {
-    local file="$1"
-    local strict_mode="$2"  # true for backend, false for frontend
-    
-    debug "Checking Python file: $file (strict=$strict_mode)"
-    
-    # Skip non-Python files
-    [[ ! "$file" =~ \.py$ ]] && return 0
-    
-    # Skip if file doesn't exist
-    [[ ! -f "$file" ]] && return 0
-    
-    # Determine thresholds based on location
-    local pylint_threshold=8.0
-    local pylint_args=""
-    
-    if [[ "$strict_mode" == "true" ]] || [[ "$file" =~ backend/ ]]; then
-        pylint_threshold=10.0
-        log "Strict mode: Backend file requires 10.0/10"
-    elif [[ "$file" =~ frontend/ ]]; then
-        pylint_threshold=7.0
-        pylint_args="--disable=C0114,C0115,C0116"
-        log "Lenient mode: Frontend file requires 7.0/10"
-    fi
-    
-    # Run pylint on single file
-    if command -v pylint &> /dev/null; then
-        log "Running pylint on $file..."
-        if ! pylint ${pylint_args:+$pylint_args} --fail-under=$pylint_threshold "$file" 2>/dev/null; then
-            error "Pylint issues in $file (threshold: $pylint_threshold)"
-            add_quality_issue "pylint" "$file" "Score below $pylint_threshold" "pylint $file"
-            CHECKS_FAILED=true
-        else
-            success "Pylint passed for $file"
-        fi
-    fi
-    
-    # Run flake8 on single file
-    if command -v flake8 &> /dev/null; then
-        log "Running flake8 on $file..."
-        if ! flake8 --max-line-length=120 --ignore=E501,W503,W504 "$file" 2>/dev/null; then
-            error "Flake8 issues in $file"
-            add_quality_issue "flake8" "$file" "Style violations detected" "flake8 --max-line-length=120 --ignore=E501,W503,W504 $file"
-            CHECKS_FAILED=true
-        else
-            success "Flake8 passed for $file"
-        fi
-    fi
-    
-    # Check formatting on single file
-    if command -v autopep8 &> /dev/null; then
-        log "Checking formatting for $file..."
-        if autopep8 --diff --max-line-length=120 "$file" | grep -q .; then
-            error "Formatting issues in $file"
-            add_quality_issue "formatting" "$file" "Code formatting issues detected" "autopep8 --in-place --max-line-length=120 $file"
-            CHECKS_FAILED=true
-        else
-            success "Formatting correct for $file"
-        fi
-    fi
-}
+# Python file checking is now handled by quality-lib.sh
 
-# Function to check JavaScript file
-check_javascript_file() {
-    local file="$1"
-    
-    debug "Checking JavaScript file: $file"
-    
-    # Skip non-JS files
-    [[ ! "$file" =~ \.js$ ]] && return 0
-    
-    # Skip if file doesn't exist
-    [[ ! -f "$file" ]] && return 0
-    
-    # Run JSHint on single file
-    if command -v jshint &> /dev/null; then
-        log "Running JSHint on $file..."
-        if ! jshint "$file" 2>/dev/null; then
-            warn "JSHint issues in $file"
-        else
-            success "JSHint passed for $file"
-        fi
-    fi
-}
-
-# Function to check HTML file
-check_html_file() {
-    local file="$1"
-    
-    debug "Checking HTML file: $file"
-    
-    # Skip non-HTML files
-    [[ ! "$file" =~ \.html$ ]] && return 0
-    
-    # Skip if file doesn't exist
-    [[ ! -f "$file" ]] && return 0
-    
-    # Validate HTML
-    if command -v python3 &> /dev/null && python3 -c "import html5lib" 2>/dev/null; then
-        log "Validating HTML in $file..."
-        if python3 -c "import html5lib; html5lib.parse(open('$file').read())" 2>/dev/null; then
-            success "✓ $file: Valid HTML5"
-        else
-            warn "✗ $file: HTML5 validation failed"
-        fi
-    fi
-}
+# JavaScript and HTML file checking is now handled by quality-lib.sh
 
 # Function to run full project checks (original behavior)
 run_project_checks() {
@@ -298,24 +172,12 @@ elif [[ -n "$EDITED_FILE" && "$QUALITY_MODE" == "file" ]]; then
         exit 0
     fi
     
-    # Determine project type and check accordingly
-    if [[ "$EDITED_FILE" =~ \.py$ ]]; then
-        check_python_file "$EDITED_FILE"
-    elif [[ "$EDITED_FILE" =~ \.js$ ]]; then
-        check_javascript_file "$EDITED_FILE"
-    elif [[ "$EDITED_FILE" =~ \.html$ ]]; then
-        check_html_file "$EDITED_FILE"
-    else
-        log "No specific quality checks for file type: $EDITED_FILE"
-    fi
+    # Use shared quality check function
+    check_file_quality "$EDITED_FILE" QUALITY_ISSUES FIX_COMMANDS || CHECKS_FAILED=true
     
     # Security checks only in project mode or during check operations
-    if [[ "$OPERATION_CONTEXT" == "check" ]] && command -v pip-audit &> /dev/null; then
-        log "Running security scan (check context)..."
-        if ! pip-audit 2>/dev/null; then
-            error "pip-audit found security vulnerabilities"
-            CHECKS_FAILED=true
-        fi
+    if [[ "$OPERATION_CONTEXT" == "check" ]]; then
+        check_security QUALITY_ISSUES FIX_COMMANDS || CHECKS_FAILED=true
     fi
 fi
 
@@ -328,7 +190,7 @@ if [[ "$CHECKS_FAILED" == "true" ]]; then
     
     # Generate structured output based on format preference
     if [[ "$OUTPUT_FORMAT" == "json" ]]; then
-        generate_json_output "$EDITED_FILE" "failed"
+        generate_quality_json "$EDITED_FILE" "failed" QUALITY_ISSUES FIX_COMMANDS
     elif [[ "$OUTPUT_FORMAT" == "mixed" ]]; then
         # Human-readable section
         echo ""
@@ -341,7 +203,7 @@ if [[ "$CHECKS_FAILED" == "true" ]]; then
         
         # Machine-readable section
         echo "=== HOOK_OUTPUT_JSON ==="
-        generate_json_output "$EDITED_FILE" "failed"
+        generate_quality_json "$EDITED_FILE" "failed" QUALITY_ISSUES FIX_COMMANDS
         echo "=== END_HOOK_OUTPUT_JSON ==="
     else
         # Human-readable only
@@ -369,7 +231,7 @@ else
     record_hook_success "quality-check"
     
     if [[ "$OUTPUT_FORMAT" == "json" || "$OUTPUT_FORMAT" == "mixed" ]]; then
-        generate_json_output "$EDITED_FILE" "passed"
+        generate_quality_json "$EDITED_FILE" "passed" QUALITY_ISSUES FIX_COMMANDS
     fi
     success "Quality checks passed!"
     end_monitoring "quality-check" "$EDITED_FILE" "success" "All quality checks passed"

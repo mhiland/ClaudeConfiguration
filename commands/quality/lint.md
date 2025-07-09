@@ -1,14 +1,32 @@
 ---
 name: quality/lint
-description: Focused linting with automatic fixes
+description: Focused linting with unified quality standards
 author: Claude Code Enhanced Setup
-version: 1.0
+version: 2.0
 category: quality
 ---
 
-# `/quality/lint` - Focused Linting with Auto-fix
+# `/quality/lint` - Focused Linting with Unified Standards
 
-Run targeted linting with automatic fixes and comprehensive error reporting.
+Run targeted linting using unified quality standards with automatic fixes.
+
+## Unified Quality Standards
+
+### Python Linting
+- **Pylint Thresholds**: 
+  - Backend: 10.0/10
+  - Frontend: 7.0/10
+  - General: 8.0/10
+- **Flake8**: `--max-line-length=120 --ignore=E501,W503,W504`
+- **Autopep8**: `--max-line-length=120`
+
+### JavaScript Linting
+- **JSHint**: Standard validation
+- **Target**: `frontend/static/js/` directory
+
+### HTML Linting
+- **html5lib**: HTML5 validation
+- **Target**: All HTML templates
 
 ## Usage
 ```
@@ -19,18 +37,33 @@ Run targeted linting with automatic fixes and comprehensive error reporting.
 - `target`: Specific file/directory to lint (defaults to current directory)
 - `autofix`: Enable automatic fixes (true/false, defaults to true)
 
-## Pre-execution Linting Setup
+## Implementation
+This command uses the shared quality library (`~/.claude/hooks/quality-lib.sh`) to ensure consistent standards across all quality tools.
+
 ```bash
-!echo "Starting focused linting for: ${1:-.}"
-!echo "Auto-fix enabled: ${2:-true}"
-!find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.ts" | head -5
+# Source shared quality library
+source ~/.claude/hooks/quality-lib.sh
+
+# Run linting using unified standards
+for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html"); do
+    issues=()
+    fixes=()
+    
+    # Check file quality
+    check_file_quality "$file" issues fixes
+    
+    # Apply automatic fixes if enabled
+    if [[ "${2:-true}" == "true" ]]; then
+        for fix in "${fixes[@]}"; do
+            eval "$fix"
+        done
+    fi
+    
+    # Report remaining issues
+    for issue in "${issues[@]}"; do
+        echo "Issue: $issue"
+    done
+done
 ```
 
-## Automatic Fixes Applied
-- Python: autopep8 formatting
-- JavaScript: ESLint auto-fixes
-- TypeScript: TSLint auto-fixes
-- JSON: Format and validate
-- YAML: Format and validate
-
-Focus on immediate, safe automatic fixes while reporting complex issues for manual review.
+This ensures linting is consistent with pre-commit hooks and the `/check` command.
