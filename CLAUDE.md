@@ -93,6 +93,12 @@ All quality tools now use shared standards from `~/.claude/hooks/quality-lib.sh`
 - **html5lib**: HTML5 validation
 - **Target**: All HTML templates
 
+**Shell Script Quality Standards:**
+- **Shellcheck**: Static analysis for shell scripts
+- **Shfmt**: Shell script formatting with 2-space indentation (`-i 2 -ci`)
+- **Target**: All `.sh` files
+- **Installation**: `sudo apt install shellcheck` and `go install mvdan.cc/sh/v3/cmd/shfmt@latest`
+
 **Security Standards:**
 - **pip-audit**: Zero vulnerabilities required
 

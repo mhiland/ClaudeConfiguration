@@ -63,6 +63,8 @@ get_file_type() {
         echo "typescript"
     elif [[ "$file" =~ \.html$ ]]; then
         echo "html"
+    elif [[ "$file" =~ \.sh$ ]]; then
+        echo "shell"
     elif [[ "$file" =~ \.(md|txt|json|yml|yaml|cfg|ini|conf|lock)$ ]]; then
         echo "non-code"
     else
@@ -267,6 +269,57 @@ check_html_file() {
     fi
 }
 
+# Check shell script with shellcheck and shfmt
+check_shell_file() {
+    local file="$1"
+    local issues_array="$2"
+    local fix_commands_array="$3"
+    
+    # Skip if not a shell file
+    [[ ! "$file" =~ \.sh$ ]] && return 0
+    
+    # Skip if file doesn't exist
+    [[ ! -f "$file" ]] && return 0
+    
+    debug "Checking shell script: $file"
+    
+    local failed=0
+    
+    # Run shellcheck for linting
+    if check_tool_available "shellcheck"; then
+        log "Running shellcheck on $file"
+        
+        if ! shellcheck "$file" 2>/dev/null; then
+            error "Shellcheck issues in $file"
+            eval "$issues_array+=(\"shellcheck:$file:Shell script quality issues\")"
+            eval "$fix_commands_array+=(\"shellcheck $file\")"
+            failed=1
+        else
+            success "Shellcheck passed for $file"
+        fi
+    else
+        debug "shellcheck not available, skipping shell linting"
+    fi
+    
+    # Run shfmt for formatting
+    if check_tool_available "shfmt"; then
+        log "Checking shell formatting for $file"
+        
+        if ! shfmt -d -i 2 -ci "$file" >/dev/null 2>&1; then
+            error "Shell formatting issues in $file"
+            eval "$issues_array+=(\"shfmt:$file:Shell script formatting issues\")"
+            eval "$fix_commands_array+=(\"shfmt -w -i 2 -ci $file\")"
+            failed=1
+        else
+            success "Shell formatting correct for $file"
+        fi
+    else
+        debug "shfmt not available, skipping shell formatting"
+    fi
+    
+    return $failed
+}
+
 # Run security audit with pip-audit
 check_security() {
     local issues_array="$1"
@@ -308,6 +361,9 @@ check_file_quality() {
             ;;
         "html")
             check_html_file "$file" "$issues_array" "$fix_commands_array" || failed=1
+            ;;
+        "shell")
+            check_shell_file "$file" "$issues_array" "$fix_commands_array" || failed=1
             ;;
         "non-code")
             debug "Skipping quality checks for non-code file: $file"
@@ -378,6 +434,7 @@ export -f get_pylint_args
 export -f check_python_file
 export -f check_javascript_file
 export -f check_html_file
+export -f check_shell_file
 export -f check_security
 export -f check_file_quality
 export -f should_bypass_hooks

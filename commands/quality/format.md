@@ -29,6 +29,10 @@ Apply consistent code formatting using unified quality standards.
 - **Tool**: html5lib validation
 - **Target**: All HTML templates
 
+### Shell Script Standards
+- **Tool**: shfmt with 2-space indentation (`-i 2 -ci`)
+- **Target**: All `.sh` files
+
 ## Usage
 ```
 /quality/format [target]
@@ -45,7 +49,7 @@ This command uses the shared quality library (`~/.claude/hooks/quality-lib.sh`) 
 source ~/.claude/hooks/quality-lib.sh
 
 # Apply formatting using unified standards (respects CLAUDE_LOG_LEVEL from settings.json)
-for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html"); do
+for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html" -o -name "*.sh"); do
     check_file_quality "$file" issues fixes
     # Apply automatic fixes
     for fix in "${fixes[@]}"; do

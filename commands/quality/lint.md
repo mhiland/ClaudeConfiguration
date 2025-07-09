@@ -28,6 +28,11 @@ Run targeted linting using unified quality standards with automatic fixes.
 - **html5lib**: HTML5 validation
 - **Target**: All HTML templates
 
+### Shell Script Linting
+- **Shellcheck**: Static analysis for shell scripts
+- **Shfmt**: Shell script formatting with 2-space indentation
+- **Target**: All `.sh` files
+
 ## Usage
 ```
 /quality/lint [target] [autofix]
@@ -45,7 +50,7 @@ This command uses the shared quality library (`~/.claude/hooks/quality-lib.sh`) 
 source ~/.claude/hooks/quality-lib.sh
 
 # Run linting using unified standards (respects CLAUDE_LOG_LEVEL from settings.json)
-for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html"); do
+for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html" -o -name "*.sh"); do
     issues=()
     fixes=()
     

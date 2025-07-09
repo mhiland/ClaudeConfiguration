@@ -32,6 +32,8 @@
       "Bash(pip-audit *)",
       "Bash(safety *)",
       "Bash(bandit *)",
+      "Bash(shellcheck *)",
+      "Bash(shfmt *)",
       "Bash(rg *)",
       "Bash(grep *)",
       "Bash(find *)",
