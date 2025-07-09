@@ -44,7 +44,7 @@ This command uses the shared quality library (`~/.claude/hooks/quality-lib.sh`) 
 # Source shared quality library
 source ~/.claude/hooks/quality-lib.sh
 
-# Apply formatting using unified standards
+# Apply formatting using unified standards (respects CLAUDE_LOG_LEVEL from settings.json)
 for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html"); do
     check_file_quality "$file" issues fixes
     # Apply automatic fixes
@@ -54,4 +54,5 @@ for file in $(find ${1:-.} -name "*.py" -o -name "*.js" -o -name "*.html"); do
 done
 ```
 
-This ensures formatting is consistent with pre-commit hooks and the `/check` command.
+**Output**: Respects `CLAUDE_LOG_LEVEL` from settings.json (default: `error` for quiet operation).  
+**Consistency**: Ensures formatting is consistent with pre-commit hooks and the `/check` command.

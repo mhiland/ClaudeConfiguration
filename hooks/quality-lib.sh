@@ -22,7 +22,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Logging functions
+# Logging functions - use CLAUDE_LOG_LEVEL from settings.json
+LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}
+
 log() {
     [[ "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2 || true
 }

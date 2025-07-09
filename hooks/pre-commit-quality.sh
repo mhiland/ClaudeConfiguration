@@ -9,7 +9,6 @@ set -e
 source ~/.claude/hooks/quality-lib.sh
 
 # Configuration
-LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}
 BYPASS_HOOKS=${CLAUDE_HOOK_BYPASS:-false}
 
 # Early exit if hooks are bypassed

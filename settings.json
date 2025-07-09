@@ -70,7 +70,7 @@
       "Bash(rsync *)"
     ]
   },
-  "model": "opus",
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {

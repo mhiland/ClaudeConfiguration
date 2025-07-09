@@ -33,7 +33,6 @@ VERBOSE=${CLAUDE_HOOK_VERBOSE:-false}
 BYPASS_HOOKS=${CLAUDE_HOOK_BYPASS:-false}
 QUALITY_MODE=${CLAUDE_QUALITY_MODE:-file}  # file, project, off
 OPERATION_CONTEXT=${CLAUDE_OPERATION_CONTEXT:-edit}  # edit, check, batch
-LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}  # error, warn, info, debug
 AUTO_FIX=${CLAUDE_AUTO_FIX:-true}  # Enable automatic fix suggestions
 OUTPUT_FORMAT=${CLAUDE_HOOK_OUTPUT_FORMAT:-mixed}  # human, json, mixed
 
