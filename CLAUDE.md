@@ -13,6 +13,7 @@ Central Claude Code configuration with comprehensive development guidelines for 
 - Never assume libraries are available - check imports and dependencies first
 - **Naming conventions**: Use descriptive variable names over abbreviations (e.g., `wifi_access_point_signal_strength` vs `signal`)
 - **Module organization**: Use modular architecture with clear separation (API, service, repository layers)
+- **Legacy Support**: Do not add extra code for fallback or legacy support
 
 ### Testing Approach
 - Distinguish between unit tests (fast, no external dependencies) and integration tests (database, network)
