@@ -1,21 +1,24 @@
 # Claude Code Hooks Documentation
 
-This directory contains comprehensive hooks for Claude Code that provide security, logging, and notification capabilities.
+This directory contains simplified hooks for Claude Code that provide security, quality, and logging capabilities.
 
-## Hook Overview
+## Active Hooks
 
 ### Security Hooks
+- **`security-validator.sh`** - Validates operations for security compliance
 - **`danger-check.sh`** - Blocks dangerous operations and provides safety checks
 - **`file-validator.sh`** - Validates file operations and prevents access to sensitive files
 
-### Logging Hooks
-- **`bash-logger.sh`** - Logs all bash commands with timestamps for debugging
-- **`mcp-logger.sh`** - Logs MCP tool operations for monitoring
-- **`deployment-notifier.sh`** - Sends notifications for deployment operations
+### Quality Hooks
+- **`pre-commit-quality.sh`** - Pre-commit quality gate using unified standards
+- **`quality-check.sh`** - Post-commit quality validation
+
+### Core Libraries
+- **`quality-lib.sh`** - Simplified quality checking library (no eval, unified standards)
+- **`unified-logger.sh`** - Single logging system for all operations
 
 ### Environment Hooks
 - **`env-check.sh`** - Validates environment setup before operations
-- **`quality-check.sh`** - Runs quality checks after file modifications
 
 ## Configuration
 

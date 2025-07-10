@@ -1,0 +1,46 @@
+{
+  "python": {
+    "pylint_thresholds": {
+      "backend": "10.0",
+      "frontend": "7.0", 
+      "general": "8.0"
+    },
+    "line_length": 120,
+    "flake8": {
+      "max_line_length": 120,
+      "ignore": ["E501", "W503", "W504"]
+    },
+    "autopep8": {
+      "max_line_length": 120
+    }
+  },
+  "javascript": {
+    "jshint": {
+      "enabled": true,
+      "target_dir": "frontend/static/js/"
+    }
+  },
+  "html": {
+    "html5lib": {
+      "enabled": true,
+      "target": "all_templates"
+    }
+  },
+  "shell": {
+    "shellcheck": {
+      "enabled": true,
+      "target": "*.sh"
+    },
+    "shfmt": {
+      "enabled": true,
+      "indentation": 2,
+      "args": "-i 2 -ci",
+      "target": "*.sh"
+    }
+  },
+  "security": {
+    "pip_audit": {
+      "vulnerabilities_allowed": 0
+    }
+  }
+}

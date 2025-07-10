@@ -1,16 +1,16 @@
-# `/check` - Aggressive Quality Enforcement Command (OPTIMIZED)
+# `/check` - Aggressive Quality Enforcement Command
 
 **THIS IS NOT A REPORTING TASK - THIS IS A FIXING TASK!**
 
 ## Mission
 Fix ALL code quality issues until EVERY check passes. Zero tolerance for warnings, errors, or style violations.
 
+Uses unified quality standards from `~/.claude/quality-standards.json` and simplified quality library.
+
 ## CRITICAL: Bypass Hook Configuration
-To prevent circular loops and improve performance, this command sets:
 ```bash
 export CLAUDE_HOOK_BYPASS=true  # Disable hooks during fixing phase
 export CLAUDE_OPERATION_CONTEXT=check  # Mark this as a check operation
-export CLAUDE_QUALITY_MODE=file  # Only check edited files during fixes
 ```
 
 ## Mandatory Actions

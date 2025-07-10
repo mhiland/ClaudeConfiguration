@@ -1,19 +1,29 @@
 #!/bin/bash
-# Claude Code Quality Library - Shared Functions
-# Common quality checking functions used across all quality tools
+# Claude Code Quality Library - Simplified Version
+# Common quality checking functions without eval statements and complex abstractions
 
-# Configuration and Standards
-declare -A PYLINT_THRESHOLDS=(
-    ["backend"]="10.0"
-    ["frontend"]="7.0"
-    ["general"]="8.0"
-)
+# Configuration and Standards - Load from JSON
+STANDARDS_FILE="$HOME/.claude/quality-standards.json"
 
-declare -A QUALITY_STANDARDS=(
-    ["python_line_length"]="120"
-    ["flake8_ignore"]="E501,W503,W504"
-    ["autopep8_args"]="--max-line-length=120"
-)
+# Load quality standards from JSON file
+load_quality_standards() {
+    if [[ ! -f "$STANDARDS_FILE" ]]; then
+        echo "[ERROR] Quality standards file not found: $STANDARDS_FILE" >&2
+        return 1
+    fi
+    
+    # Load pylint thresholds  
+    declare -gA PYLINT_THRESHOLDS
+    PYLINT_THRESHOLDS["backend"]=$(jq -r '.python.pylint_thresholds.backend' "$STANDARDS_FILE")
+    PYLINT_THRESHOLDS["frontend"]=$(jq -r '.python.pylint_thresholds.frontend' "$STANDARDS_FILE") 
+    PYLINT_THRESHOLDS["general"]=$(jq -r '.python.pylint_thresholds.general' "$STANDARDS_FILE")
+    
+    # Load other standards
+    declare -gA QUALITY_STANDARDS
+    QUALITY_STANDARDS["python_line_length"]=$(jq -r '.python.line_length' "$STANDARDS_FILE")
+    QUALITY_STANDARDS["flake8_ignore"]=$(jq -r '.python.flake8.ignore | join(",")' "$STANDARDS_FILE")
+    QUALITY_STANDARDS["autopep8_args"]="--max-line-length=$(jq -r '.python.autopep8.max_line_length' "$STANDARDS_FILE")"
+}
 
 # Color output
 RED='\033[0;31m'
@@ -26,7 +36,7 @@ NC='\033[0m'
 LOG_LEVEL=${CLAUDE_LOG_LEVEL:-error}
 
 log() {
-    [[ "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2 || true
+    [[ "$LOG_LEVEL" =~ ^(info|debug)$ ]] && echo -e "${BLUE}[$(date '+%H:%M:%S')] $1${NC}" >&2 || true
 }
 
 error() {
@@ -45,353 +55,168 @@ debug() {
     [[ "$LOG_LEVEL" == "debug" ]] && echo -e "${BLUE}[DEBUG] $1${NC}" >&2 || true
 }
 
+# Initialize standards after logging functions are defined
+load_quality_standards
+
+# Global arrays for issues and fixes - no eval needed
+declare -ga QUALITY_ISSUES
+declare -ga QUALITY_FIXES
+
+# Simple functions to add issues and fixes
+add_issue() {
+    QUALITY_ISSUES+=("$1")
+}
+
+add_fix() {
+    QUALITY_FIXES+=("$1")
+}
+
+clear_results() {
+    QUALITY_ISSUES=()
+    QUALITY_FIXES=()
+}
+
 # Check if tools are available
 check_tool_available() {
-    local tool="$1"
-    command -v "$tool" &> /dev/null
+    command -v "$1" &> /dev/null
 }
 
-# Determine file type for quality checking
+# Simple file type detection
 get_file_type() {
     local file="$1"
-    
-    if [[ "$file" =~ \.py$ ]]; then
-        echo "python"
-    elif [[ "$file" =~ \.js$ ]]; then
-        echo "javascript"
-    elif [[ "$file" =~ \.ts$ ]]; then
-        echo "typescript"
-    elif [[ "$file" =~ \.html$ ]]; then
-        echo "html"
-    elif [[ "$file" =~ \.sh$ ]]; then
-        echo "shell"
-    elif [[ "$file" =~ \.(md|txt|json|yml|yaml|cfg|ini|conf|lock)$ ]]; then
-        echo "non-code"
-    else
-        echo "unknown"
-    fi
+    case "$file" in
+        *.py) echo "python" ;;
+        *.js) echo "javascript" ;;
+        *.html) echo "html" ;;
+        *.sh) echo "shell" ;;
+        *) echo "other" ;;
+    esac
 }
 
-# Determine pylint threshold based on file location
-get_pylint_threshold() {
-    local file="$1"
-    
-    if [[ "$file" =~ backend/ ]]; then
-        echo "${PYLINT_THRESHOLDS[backend]}"
-    elif [[ "$file" =~ frontend/ ]]; then
-        echo "${PYLINT_THRESHOLDS[frontend]}"
-    else
-        echo "${PYLINT_THRESHOLDS[general]}"
-    fi
-}
-
-# Get pylint arguments based on file location
-get_pylint_args() {
-    local file="$1"
-    
-    if [[ "$file" =~ frontend/ ]]; then
-        echo "--disable=C0114,C0115,C0116"
-    else
-        echo ""
-    fi
-}
-
-# Check Python file with pylint
-check_python_pylint() {
-    local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    if ! check_tool_available "pylint"; then
-        debug "pylint not available, skipping"
-        return 0
-    fi
-    
-    local threshold=$(get_pylint_threshold "$file")
-    local args=$(get_pylint_args "$file")
-    
-    log "Running pylint on $file (threshold: $threshold)"
-    
-    if ! pylint ${args:+$args} --fail-under=$threshold "$file" 2>/dev/null; then
-        error "Pylint issues in $file (threshold: $threshold)"
-        eval "$issues_array+=(\"pylint:$file:Score below $threshold\")"
-        eval "$fix_commands_array+=(\"pylint $file\")"
-        return 1
-    else
-        success "Pylint passed for $file"
-        return 0
-    fi
-}
-
-# Check Python file with flake8
-check_python_flake8() {
-    local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    if ! check_tool_available "flake8"; then
-        debug "flake8 not available, skipping"
-        return 0
-    fi
-    
-    local line_length="${QUALITY_STANDARDS[python_line_length]}"
-    local ignore="${QUALITY_STANDARDS[flake8_ignore]}"
-    
-    log "Running flake8 on $file"
-    
-    if ! flake8 --max-line-length=$line_length --ignore=$ignore "$file" 2>/dev/null; then
-        error "Flake8 issues in $file"
-        eval "$issues_array+=(\"flake8:$file:Style violations detected\")"
-        eval "$fix_commands_array+=(\"flake8 --max-line-length=$line_length --ignore=$ignore $file\")"
-        return 1
-    else
-        success "Flake8 passed for $file"
-        return 0
-    fi
-}
-
-# Check Python file formatting with autopep8
-check_python_formatting() {
-    local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    if ! check_tool_available "autopep8"; then
-        debug "autopep8 not available, skipping"
-        return 0
-    fi
-    
-    local args="${QUALITY_STANDARDS[autopep8_args]}"
-    
-    log "Checking formatting for $file"
-    
-    if autopep8 --diff $args "$file" | grep -q .; then
-        error "Formatting issues in $file"
-        eval "$issues_array+=(\"formatting:$file:Code formatting issues detected\")"
-        eval "$fix_commands_array+=(\"autopep8 --in-place $args $file\")"
-        return 1
-    else
-        success "Formatting correct for $file"
-        return 0
-    fi
-}
-
-# Comprehensive Python file check
+# Simplified Python checks - direct tool invocation
 check_python_file() {
     local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    # Skip if not a Python file
-    [[ ! "$file" =~ \.py$ ]] && return 0
-    
-    # Skip if file doesn't exist
     [[ ! -f "$file" ]] && return 0
-    
-    debug "Checking Python file: $file"
     
     local failed=0
     
-    # Run all Python checks
-    check_python_pylint "$file" "$issues_array" "$fix_commands_array" || failed=1
-    check_python_flake8 "$file" "$issues_array" "$fix_commands_array" || failed=1
-    check_python_formatting "$file" "$issues_array" "$fix_commands_array" || failed=1
+    # Pylint check
+    if check_tool_available "pylint"; then
+        local threshold="${PYLINT_THRESHOLDS[general]}"
+        local score=$(pylint "$file" 2>/dev/null | grep "Your code has been rated" | grep -oE "[0-9]+\.[0-9]+" || echo "0.0")
+        if (( $(echo "$score < $threshold" | bc -l) )); then
+            add_issue "pylint:$file:Score $score below $threshold"
+            add_fix "pylint $file"
+            failed=1
+        fi
+    fi
+    
+    # Flake8 check
+    if check_tool_available "flake8"; then
+        local line_length="${QUALITY_STANDARDS[python_line_length]}"
+        local ignore="${QUALITY_STANDARDS[flake8_ignore]}"
+        if ! flake8 --max-line-length="$line_length" --ignore="$ignore" "$file" 2>/dev/null; then
+            add_issue "flake8:$file:Style violations"
+            add_fix "flake8 --max-line-length=$line_length --ignore=$ignore $file"
+            failed=1
+        fi
+    fi
+    
+    # Autopep8 check
+    if check_tool_available "autopep8"; then
+        local args="${QUALITY_STANDARDS[autopep8_args]}"
+        if ! autopep8 --diff $args "$file" | grep -q "^$"; then
+            add_issue "autopep8:$file:Formatting issues"
+            add_fix "autopep8 --in-place $args $file"
+            failed=1
+        fi
+    fi
     
     return $failed
 }
 
-# Check JavaScript file with JSHint
+# Simplified JavaScript check
 check_javascript_file() {
     local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    # Skip if not a JavaScript file
-    [[ ! "$file" =~ \.js$ ]] && return 0
-    
-    # Skip if file doesn't exist
     [[ ! -f "$file" ]] && return 0
     
-    debug "Checking JavaScript file: $file"
-    
-    if ! check_tool_available "jshint"; then
-        debug "jshint not available, skipping"
-        return 0
-    fi
-    
-    log "Running JSHint on $file"
-    
-    if ! jshint "$file" 2>/dev/null; then
-        warn "JSHint issues in $file"
-        eval "$issues_array+=(\"jshint:$file:JavaScript quality issues\")"
-        eval "$fix_commands_array+=(\"jshint $file\")"
+    if check_tool_available "jshint" && ! jshint "$file" 2>/dev/null; then
+        add_issue "jshint:$file:Quality issues"
+        add_fix "jshint $file"
         return 1
-    else
-        success "JSHint passed for $file"
-        return 0
     fi
+    return 0
 }
 
-# Check HTML file validation
+# Simplified HTML check
 check_html_file() {
     local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    # Skip if not an HTML file
-    [[ ! "$file" =~ \.html$ ]] && return 0
-    
-    # Skip if file doesn't exist
     [[ ! -f "$file" ]] && return 0
     
-    debug "Checking HTML file: $file"
-    
-    if ! check_tool_available "python3"; then
-        debug "python3 not available, skipping HTML validation"
-        return 0
+    if check_tool_available "python3" && python3 -c "import html5lib" 2>/dev/null; then
+        if ! python3 -c "import html5lib; html5lib.parse(open('$file').read())" 2>/dev/null; then
+            add_issue "html5:$file:Validation failed"
+            add_fix "# Manual HTML fix required for $file"
+            return 1
+        fi
     fi
-    
-    if ! python3 -c "import html5lib" 2>/dev/null; then
-        debug "html5lib not available, skipping HTML validation"
-        return 0
-    fi
-    
-    log "Validating HTML in $file"
-    
-    if python3 -c "import html5lib; html5lib.parse(open('$file').read())" 2>/dev/null; then
-        success "HTML5 validation passed for $file"
-        return 0
-    else
-        warn "HTML5 validation failed for $file"
-        eval "$issues_array+=(\"html5:$file:HTML5 validation failed\")"
-        eval "$fix_commands_array+=(\"# Manual HTML fix required for $file\")"
-        return 1
-    fi
+    return 0
 }
 
-# Check shell script with shellcheck and shfmt
+# Simplified shell check
 check_shell_file() {
     local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
-    
-    # Skip if not a shell file
-    [[ ! "$file" =~ \.sh$ ]] && return 0
-    
-    # Skip if file doesn't exist
     [[ ! -f "$file" ]] && return 0
     
-    debug "Checking shell script: $file"
-    
     local failed=0
     
-    # Run shellcheck for linting
-    if check_tool_available "shellcheck"; then
-        log "Running shellcheck on $file"
-        
-        if ! shellcheck "$file" 2>/dev/null; then
-            error "Shellcheck issues in $file"
-            eval "$issues_array+=(\"shellcheck:$file:Shell script quality issues\")"
-            eval "$fix_commands_array+=(\"shellcheck $file\")"
-            failed=1
-        else
-            success "Shellcheck passed for $file"
-        fi
-    else
-        debug "shellcheck not available, skipping shell linting"
+    if check_tool_available "shellcheck" && ! shellcheck "$file" 2>/dev/null; then
+        add_issue "shellcheck:$file:Quality issues"
+        add_fix "shellcheck $file"
+        failed=1
     fi
     
-    # Run shfmt for formatting
-    if check_tool_available "shfmt"; then
-        log "Checking shell formatting for $file"
-        
-        if ! shfmt -d -i 2 -ci "$file" >/dev/null 2>&1; then
-            error "Shell formatting issues in $file"
-            eval "$issues_array+=(\"shfmt:$file:Shell script formatting issues\")"
-            eval "$fix_commands_array+=(\"shfmt -w -i 2 -ci $file\")"
-            failed=1
-        else
-            success "Shell formatting correct for $file"
-        fi
-    else
-        debug "shfmt not available, skipping shell formatting"
+    if check_tool_available "shfmt" && ! shfmt -d -i 2 -ci "$file" 2>/dev/null | grep -q "^$"; then
+        add_issue "shfmt:$file:Formatting issues"
+        add_fix "shfmt -w -i 2 -ci $file"
+        failed=1
     fi
     
     return $failed
 }
 
-# Run security audit with pip-audit
-check_security() {
-    local issues_array="$1"
-    local fix_commands_array="$2"
-    
-    if ! check_tool_available "pip-audit"; then
-        debug "pip-audit not available, skipping security check"
-        return 0
-    fi
-    
-    log "Running security audit with pip-audit"
-    
-    if ! pip-audit 2>/dev/null; then
-        error "pip-audit found security vulnerabilities"
-        eval "$issues_array+=(\"security:project:Security vulnerabilities detected\")"
-        eval "$fix_commands_array+=(\"pip-audit --fix\")"
-        return 1
-    else
-        success "Security audit passed"
-        return 0
-    fi
-}
-
-# Main quality check function for a single file
+# Main quality check function - simplified interface
 check_file_quality() {
     local file="$1"
-    local issues_array="$2"
-    local fix_commands_array="$3"
+    clear_results
     
     local file_type=$(get_file_type "$file")
-    local failed=0
-    
     case "$file_type" in
-        "python")
-            check_python_file "$file" "$issues_array" "$fix_commands_array" || failed=1
-            ;;
-        "javascript")
-            check_javascript_file "$file" "$issues_array" "$fix_commands_array" || failed=1
-            ;;
-        "html")
-            check_html_file "$file" "$issues_array" "$fix_commands_array" || failed=1
-            ;;
-        "shell")
-            check_shell_file "$file" "$issues_array" "$fix_commands_array" || failed=1
-            ;;
-        "non-code")
-            debug "Skipping quality checks for non-code file: $file"
-            ;;
-        *)
-            debug "No specific quality checks for file type: $file"
-            ;;
+        "python") check_python_file "$file" ;;
+        "javascript") check_javascript_file "$file" ;;
+        "html") check_html_file "$file" ;;
+        "shell") check_shell_file "$file" ;;
+        *) debug "No quality checks for file type: $file" ;;
     esac
-    
-    return $failed
 }
 
-# Check if hooks should be bypassed
-should_bypass_hooks() {
-    [[ "${CLAUDE_HOOK_BYPASS:-false}" == "true" ]]
-}
-
-# Check if we're in quality mode
-is_quality_mode_off() {
-    [[ "${CLAUDE_QUALITY_MODE:-file}" == "off" ]]
-}
-
-# Generate standard JSON output
+# Simplified JSON output without eval
 generate_quality_json() {
     local file_path="$1"
     local status="$2"
-    local issues_array="$3"
-    local fix_commands_array="$4"
+    
+    local issues_json=""
+    for issue in "${QUALITY_ISSUES[@]}"; do
+        IFS=':' read -r type file details <<< "$issue"
+        [[ -n "$issues_json" ]] && issues_json+=","
+        issues_json+="{\"type\":\"$type\",\"file\":\"$file\",\"details\":\"$details\"}"
+    done
+    
+    local fixes_json=""
+    for i in "${!QUALITY_FIXES[@]}"; do
+        [[ -n "$fixes_json" ]] && fixes_json+=","
+        fixes_json+="{\"command\":\"${QUALITY_FIXES[$i]}\",\"order\":$((i+1))}"
+    done
     
     cat << EOF
 {
@@ -399,45 +224,32 @@ generate_quality_json() {
   "timestamp": "$(date -Iseconds)",
   "file": "$file_path",
   "status": "$status",
-  "issues": [
-$(eval "local issues=(\"\${$issues_array[@]}\")")
-$(for issue in "${issues[@]}"; do
-    IFS=':' read -r type file details <<< "$issue"
-    echo "    {\"type\": \"$type\", \"file\": \"$file\", \"details\": \"$details\"}"
-    [[ "$issue" != "${issues[-1]}" ]] && echo ","
-done)
-  ],
-  "fixes": [
-$(eval "local fixes=(\"\${$fix_commands_array[@]}\")")
-$(for i in "${!fixes[@]}"; do
-    echo "    {\"command\": \"${fixes[$i]}\", \"order\": $((i+1))}"
-    [[ $i -lt $((${#fixes[@]}-1)) ]] && echo ","
-done)
-  ],
-  "standards": {
-    "pylint_thresholds": {
-      "backend": "${PYLINT_THRESHOLDS[backend]}",
-      "frontend": "${PYLINT_THRESHOLDS[frontend]}",
-      "general": "${PYLINT_THRESHOLDS[general]}"
-    },
-    "python_line_length": "${QUALITY_STANDARDS[python_line_length]}"
-  }
+  "issues": [$issues_json],
+  "fixes": [$fixes_json],
+  "issue_count": ${#QUALITY_ISSUES[@]},
+  "fix_count": ${#QUALITY_FIXES[@]}
 }
 EOF
 }
 
-# Export functions for use in other scripts
-export -f check_tool_available
-export -f get_file_type
-export -f get_pylint_threshold
-export -f get_pylint_args
-export -f check_python_file
-export -f check_javascript_file
-export -f check_html_file
-export -f check_shell_file
-export -f check_security
-export -f check_file_quality
-export -f should_bypass_hooks
-export -f is_quality_mode_off
-export -f generate_quality_json
-export -f log error success warn debug
+# Security check function
+check_security() {
+    if check_tool_available "pip-audit"; then
+        if ! pip-audit 2>/dev/null; then
+            add_issue "security:project:Vulnerabilities detected"
+            add_fix "pip-audit --fix"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Check if hooks should be bypassed
+should_bypass_hooks() {
+    [[ "${CLAUDE_HOOK_BYPASS:-false}" == "true" ]]
+}
+
+# Check if quality mode is off
+is_quality_mode_off() {
+    [[ "${CLAUDE_QUALITY_MODE:-file}" == "off" ]]
+}

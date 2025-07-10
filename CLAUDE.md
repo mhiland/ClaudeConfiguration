@@ -75,32 +75,19 @@ git commit -m "fix: update feature"
 ```
 
 ### Unified Quality Standards
-All quality tools now use shared standards from `~/.claude/hooks/quality-lib.sh`:
+All quality tools now use shared standards from `~/.claude/quality-standards.json`:
 
-**Python Quality Standards:**
-- **Pylint Thresholds**: 
-  - Backend: 10.0/10
-  - Frontend: 7.0/10
-  - General: 8.0/10
-- **Flake8**: `--max-line-length=120 --ignore=E501,W503,W504`
-- **Autopep8**: `--max-line-length=120`
+**Quality Standards Configuration:**
+- **Centralized Config**: All quality thresholds, line lengths, and tool settings are defined in `quality-standards.json`
+- **Python**: Pylint thresholds (Backend: 10.0, Frontend: 7.0, General: 8.0), Flake8, Autopep8 with 120-char lines
+- **JavaScript**: JSHint validation for `frontend/static/js/` directory
+- **HTML**: html5lib validation for all templates
+- **Shell**: Shellcheck + Shfmt with 2-space indentation
+- **Security**: pip-audit with zero vulnerabilities required
 
-**JavaScript Quality Standards:**
-- **JSHint**: Standard validation
-- **Target**: `frontend/static/js/` directory
-
-**HTML Quality Standards:**
-- **html5lib**: HTML5 validation
-- **Target**: All HTML templates
-
-**Shell Script Quality Standards:**
-- **Shellcheck**: Static analysis for shell scripts
-- **Shfmt**: Shell script formatting with 2-space indentation (`-i 2 -ci`)
-- **Target**: All `.sh` files
-- **Installation**: `sudo apt install shellcheck` and `go install mvdan.cc/sh/v3/cmd/shfmt@latest`
-
-**Security Standards:**
-- **pip-audit**: Zero vulnerabilities required
+**Tool Installation:**
+- **Shellcheck**: `sudo apt install shellcheck`
+- **Shfmt**: `go install mvdan.cc/sh/v3/cmd/shfmt@latest`
 
 ### Quality Tools Integration
 All quality tools now use the shared library:

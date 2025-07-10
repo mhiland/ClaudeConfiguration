@@ -5,11 +5,8 @@
 
 set -e
 
-# Source debounce utility
-source ~/.claude/hooks/debounce.sh
-
-# Check if hook should run (debounce)
-if ! should_run_hook "security-validator"; then
+# Early exit if hooks are bypassed
+if [[ "${CLAUDE_HOOK_BYPASS:-false}" == "true" ]]; then
     exit 0
 fi
 
