@@ -1,6 +1,3 @@
-# Serena cache (allow .serena/ but ignore cache)
-.serena/cache/
-
 # Python
 __pycache__/
 *.py[cod]
