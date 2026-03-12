@@ -239,9 +239,6 @@ Usage: Type `/check` to trigger comprehensive quality enforcement that automatic
 
 ### Common .gitignore Patterns
 ```gitignore
-# Serena cache (allow .serena/ but ignore cache)
-.serena/cache/
-
 # Python
 __pycache__/
 *.py[cod]
