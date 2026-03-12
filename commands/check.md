@@ -7,7 +7,7 @@ Fix ALL code quality issues until EVERY check passes. Zero tolerance for warning
 
 ## Enhanced Workflow
 
-### Phase 1: Quick Assessment (5-10 seconds)
+### Phase 1: Quick Assessment
 - **Early Success Detection**: Run all quality checks immediately
 - **Performance Tracking**: Start timer and measure each tool execution
 - **Smart Exit**: If all checks pass, report success immediately without agents
@@ -72,8 +72,8 @@ Fix ALL code quality issues until EVERY check passes. Zero tolerance for warning
 # 1. Format all Python code automatically
 autopep8 --in-place --recursive --max-line-length=120 .
 
-# 2. Sort imports automatically  
-isort --profile black --line-length 120 .
+# 2. Sort imports automatically
+isort --line-length 120 .
 
 # 3. Fix trailing whitespace and end-of-file issues
 # (Built into most tools)
@@ -280,18 +280,4 @@ Claude: 🔍 Running quick assessment...
    git commit -m "Fix JSHint unused expression in main.js"
 ```
 
-## Performance Benchmarks
-
-### Target Performance Goals:
-- **Quick assessment**: < 5 seconds for most projects
-- **Auto-fixes only**: < 10 seconds total
-- **With agents**: < 30 seconds for complex issues
-- **Large codebases**: < 60 seconds maximum
-
-### Optimization Strategies:
-- **Parallel execution**: Run compatible checks simultaneously
-- **Caching**: Cache tool results when possible
-- **Smart targeting**: Only check modified files when appropriate
-- **Agent efficiency**: Reuse agent instances for related fixes
-
-**Remember: This enhanced command provides intelligent automation while maintaining the zero-tolerance approach to code quality issues.**
+**Remember: This command provides intelligent automation while maintaining the zero-tolerance approach to code quality issues.**

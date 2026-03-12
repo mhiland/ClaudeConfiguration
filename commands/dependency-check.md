@@ -2,224 +2,92 @@
 name: dependency-check
 description: Dependency vulnerability scanning and security analysis
 author: Claude Code Enhanced Setup
-version: 1.0
+version: 2.0
 category: security
 ---
 
-# `/dependency-check` - Dependency Vulnerability Scanner
+# Dependency Vulnerability Scanner
 
-Scan project dependencies for known security vulnerabilities across multiple package ecosystems.
+Scan all project dependencies for known security vulnerabilities. Run every tool, report all findings, and provide actionable remediation.
 
-## Usage
-```
-/dependency-check [file/directory] [ecosystem]
-```
+## Step 1: Detect Dependency Files
 
-**Arguments:**
-- `file/directory`: Target dependency file or directory (optional, defaults to current directory)
-- `ecosystem`: Package ecosystem (npm/pip/maven/gradle/auto, defaults to auto)
+Search the project for dependency files:
+- Python: `requirements.txt`, `backend/requirements.txt`, `frontend/requirements.txt`, `pyproject.toml`
+- JavaScript: `package.json`, `package-lock.json`
 
-## Supported Ecosystems
+List all dependency files found before proceeding.
 
-### npm (Node.js)
-- **Files**: `package.json`, `package-lock.json`, `yarn.lock`
-- **Registry**: npm registry vulnerability database
-- **Analysis**: Direct and transitive dependency vulnerabilities
+## Step 2: Run Python Scans
 
-### pip (Python)
-- **Files**: `requirements.txt`, `Pipfile`, `poetry.lock`, `pyproject.toml`
-- **Registry**: PyPI security advisory database
-- **Analysis**: Package version vulnerability mapping
-
-### Maven (Java)
-- **Files**: `pom.xml`, `maven-dependencies.txt`
-- **Registry**: Maven Central security database
-- **Analysis**: JAR dependency security assessment
-
-### Gradle (Java/Android)
-- **Files**: `build.gradle`, `gradle.lockfile`
-- **Registry**: Gradle dependency vulnerability database
-- **Analysis**: Build dependency security analysis
-
-## Vulnerability Detection
-
-### CVE Integration
-- Common Vulnerabilities and Exposures (CVE) database
-- National Vulnerability Database (NVD) integration
-- Security advisory aggregation
-- Real-time vulnerability updates
-
-### Risk Assessment
-- **Critical**: Remote code execution, authentication bypass
-- **High**: Privilege escalation, data exposure
-- **Medium**: Denial of service, information disclosure
-- **Low**: Minor security issues, best practice violations
-
-### Dependency Analysis
-- **Direct Dependencies**: Explicitly declared packages
-- **Transitive Dependencies**: Sub-dependencies and their chains
-- **Development Dependencies**: Build-time security considerations
-- **Runtime Dependencies**: Production deployment vulnerabilities
-
-## Scan Coverage
-
-### Security Vulnerability Types
-- Remote code execution (RCE)
-- Cross-site scripting (XSS)
-- SQL injection enablers
-- Authentication bypass
-- Privilege escalation
-- Data exposure risks
-- Denial of service (DoS)
-- Cryptographic weaknesses
-
-### Dependency Metadata
-- Version analysis and comparison
-- License compliance checking
-- Maintenance status assessment
-- End-of-life dependency detection
-- Security patch availability
-
-## Vulnerability Reporting
-
-### Detailed Findings
-- **Package Information**: Name, version, ecosystem
-- **Vulnerability Details**: CVE ID, CVSS score, description
-- **Affected Versions**: Version ranges and specific vulnerable versions
-- **Remediation**: Update recommendations and fix versions
-- **Exploit Information**: Known exploits and attack vectors
-
-### Risk Prioritization
-- CVSS score-based ranking
-- Exploit availability assessment
-- Business impact consideration
-- Patch availability evaluation
-- Dependency usage analysis
-
-## Remediation Guidance
-
-### Update Strategies
-- **Immediate Updates**: Critical vulnerabilities requiring urgent fixes
-- **Scheduled Updates**: High/medium risk vulnerabilities
-- **Monitoring**: Low-risk vulnerabilities for future updates
-- **Alternative Packages**: Replacement recommendations for abandoned packages
-
-### Version Management
-- Minimum secure version identification
-- Breaking change impact assessment
-- Compatibility verification
-- Rollback planning strategies
-
-## Example Vulnerability Scenarios
-
-### npm Package Vulnerabilities
-```json
-{
-  "package": "lodash",
-  "version": "4.17.15",
-  "vulnerability": "CVE-2020-8203",
-  "severity": "high",
-  "description": "Prototype pollution vulnerability",
-  "fixVersion": "4.17.19"
-}
-```
-
-### Python Package Vulnerabilities
-```python
-# requirements.txt
-django==2.2.0  # VULNERABLE: CVE-2019-14232, CVE-2019-14233
-# Recommendation: Update to django>=2.2.4
-```
-
-### Java Dependency Vulnerabilities
-```xml
-<!-- pom.xml -->
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-web</artifactId>
-    <version>5.2.0.RELEASE</version> <!-- VULNERABLE: CVE-2020-5398 -->
-</dependency>
-```
-
-## Integration with MCP Server
-
-This command integrates with the MCP OWASP Security Server:
-- Uses the `dependency-check` tool for multi-ecosystem analysis
-- Provides structured vulnerability assessment
-- Includes detailed remediation recommendations
-- Supports automated scanning workflows
-
-## Security Metrics
-
-### Vulnerability Metrics
-- Total vulnerabilities by severity
-- Time to remediation tracking
-- Vulnerability introduction rate
-- Security debt quantification
-
-### Dependency Health
-- Outdated dependency percentage
-- Security patch compliance
-- Maintenance status overview
-- License compliance status
-
-## Usage Examples
+Activate the virtual environment, then run both scanners against every requirements file found:
 
 ```bash
-# Scan current directory for all dependency files
-/dependency-check
+source .venv/bin/activate
 
-# Scan specific package.json file
-/dependency-check package.json npm
+# pip-audit: checks PyPI advisory database
+pip-audit -r requirements.txt
+pip-audit -r backend/requirements.txt
+pip-audit -r frontend/requirements.txt
 
-# Scan Python requirements
-/dependency-check requirements.txt pip
-
-# Scan Java Maven project
-/dependency-check pom.xml maven
+# safety: checks Safety DB (if installed)
+safety check --file requirements.txt --output json
 ```
 
-## Continuous Security Monitoring
+Record every vulnerability with: package name, installed version, severity, CVE ID, and fixed version.
 
-### Automated Scanning
-- CI/CD pipeline integration
-- Scheduled vulnerability scans
-- Real-time security alerts
-- Dependency update notifications
+## Step 3: Run JavaScript Scans
 
-### Security Policies
-- Vulnerability threshold enforcement
-- Acceptable risk level definitions
-- Security gate implementation
-- Compliance requirement tracking
+If `package.json` exists, run:
 
-## Best Practices
+```bash
+npm audit --json
+```
 
-### Dependency Management
-- Regular dependency updates
-- Security-first package selection
-- Minimal dependency principle
-- Dependency pinning strategies
+Record every vulnerability with: package name, installed version, severity, CVE ID, and fixed version.
 
-### Vulnerability Response
-- Immediate critical vulnerability fixes
-- Structured update scheduling
-- Impact assessment procedures
-- Rollback contingency planning
+## Step 4: Report Findings
 
-### Supply Chain Security
-- Package integrity verification
-- Trusted registry usage
-- Developer key validation
-- Build reproducibility
+Present results in this exact format:
 
-## Remediation Workflow
+```
+DEPENDENCY VULNERABILITY REPORT
+================================
 
-1. **Scan**: Identify vulnerable dependencies
-2. **Assess**: Evaluate risk and business impact
-3. **Plan**: Develop update strategy
-4. **Test**: Verify fixes in staging environment
-5. **Deploy**: Apply updates to production
-6. **Monitor**: Track for new vulnerabilities
+Python Vulnerabilities (pip-audit):
+  [SEVERITY] package==version -- CVE-XXXX-XXXXX -- Fixed in: version
+  ...
+  Total: N vulnerabilities
 
-This dependency vulnerability scanner provides comprehensive security analysis across multiple package ecosystems, enabling proactive identification and remediation of supply chain security risks.
+Python Vulnerabilities (safety):
+  [SEVERITY] package==version -- CVE-XXXX-XXXXX -- Fixed in: version
+  ...
+  Total: N vulnerabilities
+
+JavaScript Vulnerabilities (npm audit):
+  [SEVERITY] package@version -- CVE-XXXX-XXXXX -- Fixed in: version
+  ...
+  Total: N vulnerabilities
+
+SUMMARY: N Python + N JavaScript = N total vulnerabilities
+```
+
+If a scanner finds zero vulnerabilities, report "No vulnerabilities found" for that section.
+If a scanner is not installed or fails, note the error and continue with remaining scanners.
+
+## Step 5: Remediation
+
+For each vulnerability found, provide:
+
+1. The exact command to update the package:
+   - Python: `pip install package==fixed_version` and which requirements file to update
+   - JavaScript: `npm install package@fixed_version`
+
+2. Check for breaking changes by reviewing the changelog or release notes between the current and fixed versions. Flag any major version bumps.
+
+3. If no fix is available, recommend whether to:
+   - Pin to a non-vulnerable version
+   - Find an alternative package
+   - Accept the risk with justification
+
+Do NOT make any changes to files. Report only.

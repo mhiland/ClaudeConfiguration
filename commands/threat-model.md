@@ -2,301 +2,85 @@
 name: threat-model
 description: STRIDE-based threat modeling and security architecture analysis
 author: Claude Code Enhanced Setup
-version: 1.0
+version: 2.0
 category: security
 ---
 
-# `/threat-model` - STRIDE-Based Threat Modeling
+# Threat Model -- STRIDE-Based Code Analysis
 
-Perform comprehensive threat modeling analysis using STRIDE methodology for security architecture assessment.
+Perform a code-based threat model of this project using the STRIDE methodology. This analysis is scoped to what can be determined from source code, configuration, and infrastructure-as-code. It is not a substitute for a full threat model involving stakeholder interviews, network diagrams, and runtime analysis.
 
-## Usage
-```
-/threat-model [description] [components] [data-flows]
-```
+## Step 1: Identify Components
 
-**Arguments:**
-- `description`: System description (optional, will prompt if not provided)
-- `components`: System components (optional, will analyze codebase if not provided)
-- `data-flows`: Data flow descriptions (optional, will infer from code if not provided)
+Search the codebase to build an inventory of security-relevant components:
 
-## STRIDE Threat Categories
+- **API endpoints**: Read route definitions (FastAPI, Flask, Express, etc.) and list all exposed endpoints with their HTTP methods and authentication requirements.
+- **Authentication and authorization**: Find auth mechanisms (tokens, sessions, API keys, OAuth, RBAC). Note where auth is enforced and where it is absent.
+- **Database connections**: Identify database drivers, connection strings, ORM models, and raw query usage. Check for parameterized queries vs string interpolation.
+- **External integrations**: Find outbound HTTP calls, message queues, third-party SDKs, and webhook handlers.
+- **Configuration and secrets**: Check environment variable usage, config files, .env files, and whether secrets are hardcoded or properly externalized.
+- **Docker and infrastructure**: Read Dockerfiles, compose files, and deployment configs for capability grants, exposed ports, volume mounts, and network modes.
+- **Input entry points**: Identify all places user-supplied data enters the system (HTTP bodies, query params, file uploads, CLI args, system command inputs).
 
-### Spoofing (S)
-**Identity and Authentication Threats**
-- User identity spoofing
-- Service impersonation
-- Certificate spoofing
-- Session hijacking
-- Man-in-the-middle attacks
+## Step 2: Map Data Flows
 
-**Common Scenarios:**
-- Weak authentication mechanisms
-- Missing certificate validation
-- Insufficient session management
-- Replay attack vulnerabilities
+Trace how data moves through the system by reading the actual code:
 
-### Tampering (T)
-**Data Integrity Threats**
-- Data modification attacks
-- Code injection vulnerabilities
-- Configuration tampering
-- Message alteration
-- Database corruption
+- User input to validation to processing to storage
+- Authentication credential flow (login to token issuance to verification)
+- Sensitive data paths (where sensitive data is read, transformed, stored, and displayed)
+- Inter-service communication (protocols, encryption, trust assumptions)
+- Logging paths (what is logged, where logs are stored, whether sensitive data is logged)
 
-**Common Scenarios:**
-- Input validation failures
-- Insecure data transmission
-- Weak access controls
-- Missing integrity checks
+## Step 3: Apply STRIDE to Each Component
 
-### Repudiation (R)
-**Non-Repudiation Threats**
-- Action denial capabilities
-- Insufficient audit logging
-- Log tampering possibilities
-- Weak digital signatures
-- Missing accountability
+For each component and data flow identified, systematically evaluate:
 
-**Common Scenarios:**
-- Inadequate logging systems
-- Missing audit trails
-- Weak authentication logs
-- Insecure log storage
+- **Spoofing**: Can an attacker impersonate a user, service, or component? Are authentication checks present and correct?
+- **Tampering**: Can data be modified in transit or at rest without detection? Is input validated? Are integrity checks in place?
+- **Repudiation**: Can actions be performed without accountability? Is audit logging sufficient? Can logs be tampered with?
+- **Information Disclosure**: Can sensitive data leak through error messages, logs, API responses, or side channels? Is encryption used where needed?
+- **Denial of Service**: Are there rate limits? Can resources be exhausted? Are there unbounded queries or file operations?
+- **Elevation of Privilege**: Can a low-privilege user access admin functionality? Are authorization checks enforced at every layer?
 
-### Information Disclosure (I)
-**Data Confidentiality Threats**
-- Unauthorized data access
-- Information leakage
-- Privacy violations
-- Metadata exposure
-- Side-channel attacks
+## Step 4: Produce Threat Assessment Report
 
-**Common Scenarios:**
-- Weak encryption implementation
-- Insufficient access controls
-- Error message information leakage
-- Unsecured data storage
+Output the findings using this structure:
 
-### Denial of Service (D)
-**Availability Threats**
-- Resource exhaustion attacks
-- System overload scenarios
-- Service disruption
-- Performance degradation
-- Resource locking
+### 4a. Component Inventory
 
-**Common Scenarios:**
-- Uncontrolled resource consumption
-- Missing rate limiting
-- Algorithmic complexity attacks
-- Memory exhaustion
+List each component found in Step 1 with a one-line description and its trust boundary (e.g., external-facing, internal-only, database tier).
 
-### Elevation of Privilege (E)
-**Authorization Threats**
-- Privilege escalation
-- Authorization bypass
-- Access control failures
-- Administrative takeover
-- Unauthorized functionality access
+### 4b. Data Flow Summary
 
-**Common Scenarios:**
-- Insufficient authorization checks
-- Privilege boundary violations
-- Administrative interface exposure
-- Weak role-based access control
+Describe each significant data flow found in Step 2 in one to two sentences.
 
-## Threat Modeling Process
+### 4c. Threat Matrix
 
-### 1. System Decomposition
-- **Assets**: Identify valuable data and resources
-- **Entry Points**: Map attack surfaces and interfaces
-- **Trust Boundaries**: Define security perimeters
-- **Data Flows**: Trace sensitive information movement
+Present findings as a markdown table:
 
-### 2. Threat Identification
-- **STRIDE Analysis**: Apply each category systematically
-- **Attack Trees**: Model potential attack paths
-- **Threat Actors**: Consider adversary capabilities
-- **Attack Vectors**: Identify exploitation methods
+| # | Component | STRIDE | Threat Description | Risk | Status | Recommendation |
+|---|-----------|--------|--------------------|------|--------|----------------|
+| 1 | Example endpoint | T | No input validation on user-supplied JSON body | High | Unmitigated | Add Pydantic model validation |
 
-### 3. Vulnerability Assessment
-- **Weakness Mapping**: Link threats to system weaknesses
-- **Exploitability**: Assess attack feasibility
-- **Impact Analysis**: Evaluate business consequences
-- **Risk Calculation**: Combine likelihood and impact
+Column definitions:
+- **#**: Sequential identifier
+- **Component**: The specific component, endpoint, or data flow
+- **STRIDE**: One of S, T, R, I, D, E
+- **Threat Description**: Concrete description of the threat based on code evidence
+- **Risk**: Critical, High, Medium, or Low (based on exploitability and impact)
+- **Status**: Mitigated, Partially Mitigated, or Unmitigated
+- **Recommendation**: Specific, actionable fix referencing code patterns or libraries
 
-### 4. Mitigation Strategy
-- **Controls**: Implement security countermeasures
-- **Monitoring**: Deploy detection mechanisms
-- **Response**: Plan incident response procedures
-- **Recovery**: Establish business continuity
+### 4d. Summary
 
-## System Analysis Components
+- Total threats found, grouped by risk level
+- Top 3 priorities requiring immediate attention
+- Overall security posture assessment (one paragraph)
 
-### Architecture Elements
-- **Web Applications**: Frontend and backend services
-- **APIs**: RESTful and GraphQL endpoints
-- **Databases**: Data storage and access patterns
-- **Authentication**: User identity management
-- **Authorization**: Access control mechanisms
-- **Network**: Communication protocols and topology
+## Constraints
 
-### Data Flow Analysis
-- **Input Validation**: User data entry points
-- **Data Processing**: Transformation and business logic
-- **Data Storage**: Persistence and retrieval
-- **Output Generation**: Response and reporting
-- **Integration**: External system communication
-
-## Risk Assessment Matrix
-
-### Threat Likelihood
-- **High**: Easily exploitable, common attack vectors
-- **Medium**: Moderate skill required, some barriers
-- **Low**: Difficult to exploit, significant barriers
-
-### Impact Severity
-- **Critical**: System compromise, data breach
-- **High**: Service disruption, significant data loss
-- **Medium**: Limited functionality impact
-- **Low**: Minor inconvenience, minimal impact
-
-### Risk Prioritization
-- **Critical Risk**: High likelihood + Critical impact
-- **High Risk**: High likelihood + High impact, Medium likelihood + Critical impact
-- **Medium Risk**: Medium likelihood + Medium impact
-- **Low Risk**: Low likelihood + Low impact
-
-## Threat Model Deliverables
-
-### Threat Assessment Report
-- **Executive Summary**: High-level security posture
-- **Threat Landscape**: Identified threats and risks
-- **Vulnerability Analysis**: System weaknesses
-- **Risk Assessment**: Prioritized security risks
-- **Mitigation Recommendations**: Security controls
-
-### Security Architecture Review
-- **Component Analysis**: Security design evaluation
-- **Trust Boundary Validation**: Security perimeter assessment
-- **Data Flow Security**: Information protection analysis
-- **Attack Surface Mapping**: Exposure point identification
-
-## Integration with MCP Server
-
-This command leverages the MCP OWASP Security Server:
-- Uses the `threat-model` tool for STRIDE analysis
-- Provides structured threat assessment
-- Includes detailed risk evaluation
-- Supports comprehensive security architecture review
-
-## Common Threat Scenarios
-
-### Web Application Threats
-```
-Spoofing: Session token prediction
-Tampering: SQL injection attacks
-Repudiation: Missing audit logs
-Information Disclosure: Error message leakage
-Denial of Service: Resource exhaustion
-Elevation of Privilege: Authorization bypass
-```
-
-### API Security Threats
-```
-Spoofing: API key theft
-Tampering: Request parameter manipulation
-Repudiation: Insufficient API logging
-Information Disclosure: Excessive data exposure
-Denial of Service: Rate limiting bypass
-Elevation of Privilege: Broken object level authorization
-```
-
-### Database Threats
-```
-Spoofing: Database user impersonation
-Tampering: Direct database manipulation
-Repudiation: Database audit bypass
-Information Disclosure: Unauthorized data access
-Denial of Service: Database resource exhaustion
-Elevation of Privilege: Database privilege escalation
-```
-
-## Usage Examples
-
-```bash
-# Analyze current system with automatic component detection
-/threat-model
-
-# Specific system analysis
-/threat-model "E-commerce web application with payment processing"
-
-# Comprehensive analysis with components
-/threat-model "Banking API system" "web-server,database,payment-gateway"
-
-# Full analysis with data flows
-/threat-model "Healthcare system" "app,db,auth" "patient-data,medical-records"
-```
-
-## Threat Modeling Best Practices
-
-### Early Integration
-- Design phase threat modeling
-- Architecture review integration
-- Security requirement derivation
-- Risk-based design decisions
-
-### Continuous Process
-- Regular threat model updates
-- New feature threat analysis
-- Security architecture evolution
-- Threat landscape monitoring
-
-### Stakeholder Involvement
-- Security architect participation
-- Developer security awareness
-- Business stakeholder engagement
-- Risk owner identification
-
-## Mitigation Strategies
-
-### Preventive Controls
-- Input validation and sanitization
-- Authentication and authorization
-- Encryption and data protection
-- Secure coding practices
-
-### Detective Controls
-- Security monitoring and logging
-- Intrusion detection systems
-- Audit trail analysis
-- Anomaly detection
-
-### Responsive Controls
-- Incident response procedures
-- Security patch management
-- Vulnerability remediation
-- Business continuity planning
-
-## Integration with Development Lifecycle
-
-### Design Phase
-- Security requirements definition
-- Architecture security review
-- Threat model development
-- Risk assessment integration
-
-### Development Phase
-- Security control implementation
-- Threat model validation
-- Security testing integration
-- Code review security focus
-
-### Deployment Phase
-- Security configuration validation
-- Threat model verification
-- Security monitoring setup
-- Incident response preparation
-
-This STRIDE-based threat modeling provides comprehensive security architecture analysis, enabling proactive identification and mitigation of security threats throughout the system lifecycle.
+- Only report threats you can substantiate with code evidence. Do not speculate about runtime behavior you cannot verify from source.
+- Reference specific file paths and line numbers when possible.
+- If a threat category has no findings for a component, skip it rather than padding with generic advice.
+- Keep the report actionable. Every recommendation should be something a developer can implement.

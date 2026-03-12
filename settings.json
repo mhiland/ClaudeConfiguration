@@ -1,16 +1,72 @@
 {
-  "_note": "This file is NOT used by Claude Code. Claude Code reads ~/.claude/settings.json. The hook below is retained for reference only.",
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.config/claude/hooks/quality-check.sh"
-          }
-        ]
-      }
+  "cleanupPeriodDays": 7,
+  "env": {
+    "ANTHROPIC_MODEL": "sonnet",
+    "ANTHROPIC_SMALL_FAST_MODEL": "claude-haiku-4-5-20251001",
+    "BASH_DEFAULT_TIMEOUT_MS": "300000",
+    "CLAUDE_LOG_LEVEL": "error",
+    "CLAUDE_HOOK_TIMEOUT": "5000",
+    "CLAUDE_QUALITY_MODE": "file",
+    "CLAUDE_SECURITY_MODE": "balanced",
+    "DISABLE_TELEMETRY": "true"
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(glab:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(docker:*)",
+      "Bash(npm:*)",
+      "Bash(pip:*)",
+      "Bash(pylint:*)",
+      "Bash(flake8:*)",
+      "Bash(autopep8:*)",
+      "Bash(pip-audit:*)",
+      "Bash(safety:*)",
+      "Bash(bandit:*)",
+      "Bash(shellcheck:*)",
+      "Bash(shfmt:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(echo:*)",
+      "Bash(timeout:*)",
+      "Bash(jobs)",
+      "Bash(wait)",
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Glob",
+      "Grep",
+      "LS",
+      "Task",
+      "TodoRead",
+      "TodoWrite",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "deny": [
+      "WebFetch(domain:anthropic.com)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)"
     ]
-  }
+  },
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": []
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "mcpServers": {},
+  "autoUpdate": true
 }

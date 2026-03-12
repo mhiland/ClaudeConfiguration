@@ -2,247 +2,125 @@
 name: code-review
 description: Security-focused code review with best practices analysis
 author: Claude Code Enhanced Setup
-version: 1.0
+version: 2.0
 category: security
 ---
 
-# `/code-review` - Security-Focused Code Review
+# Security Code Review
 
-Perform comprehensive security code review analyzing best practices, vulnerabilities, and secure coding patterns.
+Perform a security-focused code review of the target path. Default to the project root if no argument is given.
 
-## Usage
-```
-/code-review [file/directory] [language] [depth]
-```
+**Argument:** `$ARGUMENTS` (file or directory path, optionally followed by `quick`, `standard`, or `comprehensive`)
 
-**Arguments:**
-- `file/directory`: Target to review (optional, defaults to current directory)
-- `language`: Programming language (python/javascript/java/csharp/auto, defaults to auto)
-- `depth`: Review depth (quick/standard/comprehensive, defaults to standard)
+Parse the argument: extract the target path (default: project root) and depth level (default: `standard`).
 
-## Review Depth Levels
+## Step 1: Identify Target Files
 
-### Quick Review
-Fast security scan focusing on:
-- Input validation patterns
-- Authentication mechanisms
-- Critical security best practices
-- High-risk vulnerability patterns
+Use Glob and Read to collect the files under review. Focus on Python (.py) and JavaScript (.js) files. Exclude virtual environments, node_modules, and __pycache__ directories.
 
-### Standard Review (Default)
-Comprehensive analysis including:
-- All quick review areas
-- Authorization and access control
-- Cryptography implementation
-- Error handling and logging
-- Session management
-- Data protection
+## Step 2: Run Static Analysis Tools
 
-### Comprehensive Review
-Deep security analysis covering:
-- All standard review areas
-- Business logic security
-- Advanced threat scenarios
-- Compliance considerations
-- Architecture security patterns
-- Performance security implications
-
-## Security Focus Areas
-
-### Input Validation & Sanitization
-- User input validation patterns
-- Data sanitization techniques
-- Injection prevention measures
-- File upload security
-- API input validation
-
-### Authentication & Authorization
-- Authentication mechanism security
-- Password handling best practices
-- Session management patterns
-- Authorization control implementation
-- Multi-factor authentication
-
-### Cryptography & Data Protection
-- Encryption implementation
-- Key management practices
-- Hashing algorithm usage
-- Certificate validation
-- Data storage security
-
-### Error Handling & Logging
-- Secure error message patterns
-- Exception handling security
-- Security event logging
-- Information disclosure prevention
-- Audit trail implementation
-
-### Session Management
-- Session token security
-- Session lifecycle management
-- Session fixation prevention
-- Cross-site request forgery (CSRF) protection
-- Secure cookie implementation
-
-## Language-Specific Security Patterns
-
-### Python Security Analysis
-```python
-# Secure patterns detected:
-# ✓ Parameterized queries
-cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-
-# ✓ Secure subprocess usage
-subprocess.run(['ping', user_input], check=True)
-
-# ✓ Proper exception handling
-try:
-    process_data(user_input)
-except ValidationError as e:
-    log_security_event(e)
-    return generic_error_response()
-```
-
-### JavaScript Security Analysis
-```javascript
-// Secure patterns detected:
-// ✓ Safe DOM manipulation
-element.textContent = userInput;
-
-// ✓ Proper JSON handling
-const data = JSON.parse(sanitizedInput);
-
-// ✓ Secure HTTP headers
-res.setHeader('Content-Security-Policy', 'default-src \'self\'');
-```
-
-### Java Security Analysis
-```java
-// Secure patterns detected:
-// ✓ Prepared statements
-String sql = "SELECT * FROM users WHERE name = ?";
-PreparedStatement stmt = connection.prepareStatement(sql);
-stmt.setString(1, userName);
-
-// ✓ Input validation
-if (validator.isValid(userInput)) {
-    processInput(userInput);
-}
-```
-
-## Code Review Categories
-
-### Security Vulnerabilities
-- OWASP Top 10 compliance
-- Common weakness enumeration (CWE) patterns
-- Security anti-patterns
-- Vulnerability risk assessment
-
-### Best Practices Adherence
-- Secure coding standards
-- Industry security guidelines
-- Framework security features
-- Security design patterns
-
-### Architecture Security
-- Security-by-design principles
-- Threat model alignment
-- Security control implementation
-- Defense-in-depth strategies
-
-### Compliance & Standards
-- Regulatory compliance patterns
-- Security standard adherence
-- Policy implementation
-- Audit trail requirements
-
-## Review Output
-
-### Security Score
-- Overall security rating (0-100)
-- Category-specific scores
-- Improvement recommendations
-- Risk assessment summary
-
-### Findings Classification
-- **Critical**: Immediate security risks requiring urgent fixes
-- **High**: Significant security concerns needing prompt attention
-- **Medium**: Security improvements recommended
-- **Low**: Best practice enhancements
-- **Info**: Security information and recommendations
-
-### Remediation Guidance
-- Specific fix recommendations
-- Secure code examples
-- Best practice references
-- Implementation priorities
-
-## Integration with MCP Server
-
-This command leverages the MCP OWASP Security Server:
-- Uses the `code-review` tool for multi-language analysis
-- Provides structured security assessment
-- Includes detailed remediation guidance
-- Supports configurable review depth
-
-## Security Metrics
-
-### Code Security Health
-- Secure pattern usage percentage
-- Vulnerability density metrics
-- Security debt assessment
-- Compliance score tracking
-
-### Improvement Tracking
-- Security issue resolution rate
-- Best practice adoption metrics
-- Risk reduction measurement
-- Code quality trend analysis
-
-## Usage Examples
+Run these commands in bash (activate venv first). Capture and parse the output.
 
 ```bash
-# Standard security review of current directory
-/code-review
+source .venv/bin/activate
 
-# Quick review of specific file
-/code-review src/auth.py python quick
+# Bandit security scan for Python (if Python files exist)
+bandit -r <target_path> -f json -ll 2>/dev/null || true
 
-# Comprehensive review of frontend code
-/code-review frontend/ javascript comprehensive
+# Grep-based pattern scanning (always run)
+# SQL injection - string concatenation in queries
+grep -rn --include="*.py" -E "(execute|cursor|query)\(.*(%s|format|f\"|\\+.*input)" <target_path> || true
 
-# Review Java authentication module
-/code-review auth/ java standard
+# Command injection - shell=True or unsanitized subprocess
+grep -rn --include="*.py" -E "(subprocess\.(call|run|Popen).*shell\s*=\s*True|os\.system\()" <target_path> || true
+
+# Hardcoded secrets - passwords, tokens, keys in assignments
+grep -rn --include="*.py" --include="*.js" --include="*.yml" --include="*.yaml" --include="*.json" -iE "(password|secret|api_key|token|private_key)\s*[:=]\s*['\"][^'\"]{4,}" <target_path> || true
+
+# Dangerous deserialization
+grep -rn --include="*.py" -E "(pickle\.loads?|yaml\.load\((?!.*Loader)|marshal\.loads?)" <target_path> || true
+
+# XSS - innerHTML or unsafe Jinja rendering
+grep -rn --include="*.js" "\.innerHTML\s*=" <target_path> || true
+grep -rn --include="*.html" -E "\{\{.*\|.*safe\}\}|\{% autoescape false %\}" <target_path> || true
+
+# Path traversal
+grep -rn --include="*.py" -E "(open\(|send_file\(|send_from_directory\().*\+(.*input|.*request|.*param)" <target_path> || true
+
+# Debug/development leftovers
+grep -rn --include="*.py" -E "(debug\s*=\s*True|app\.run\(.*debug)" <target_path> || true
+grep -rn --include="*.py" --include="*.js" -E "(print\(.*password|console\.log\(.*token|console\.log\(.*secret)" <target_path> || true
+
+# Weak cryptography
+grep -rn --include="*.py" -E "(md5|sha1)\(" <target_path> || true
+
+# Broad exception handling hiding errors
+grep -rn --include="*.py" -E "except\s*(Exception|BaseException)\s*:" <target_path> || true
+
+# Insecure HTTP
+grep -rn --include="*.py" --include="*.js" -E "http://" <target_path> | grep -v "localhost\|127\.0\.0\.1\|#\|test" || true
 ```
 
-## Security Review Checklist
+## Step 3: Manual Code Analysis
 
-### Pre-Review Setup
-- [ ] Identify sensitive data flows
-- [ ] Map authentication/authorization points
-- [ ] Document security requirements
-- [ ] Review threat model alignment
+Read each file and analyze for issues that grep cannot catch:
 
-### During Review
-- [ ] Validate input sanitization
-- [ ] Check authentication mechanisms
-- [ ] Verify authorization controls
-- [ ] Assess cryptographic usage
-- [ ] Review error handling
-- [ ] Evaluate logging practices
+- **Authentication/Authorization**: Missing auth checks on endpoints, privilege escalation paths
+- **Input validation**: Unvalidated user input reaching database queries, file operations, or system calls
+- **Error handling**: Sensitive data leaked in error messages, stack traces exposed to users
+- **Business logic**: Race conditions, TOCTOU bugs, insecure direct object references
+- **Configuration**: Permissive CORS, missing security headers, overly broad permissions
 
-### Post-Review Actions
-- [ ] Prioritize security findings
-- [ ] Create remediation plan
-- [ ] Update security documentation
-- [ ] Schedule follow-up reviews
-- [ ] Track security improvements
+### Depth Adjustments
 
-## Continuous Security Integration
+- **quick**: Run Step 2 only. Report grep and bandit findings without manual file analysis.
+- **standard**: Run Steps 2 and 3. Analyze key files (routes, auth, database access, config).
+- **comprehensive**: Run Steps 2 and 3. Analyze every file. Additionally check: dependency versions for known CVEs, Docker configurations for privilege issues, environment variable handling, logging of sensitive data, and timing attack vectors.
 
-- **Pre-commit Reviews**: Automated security checks before code commits
-- **CI/CD Integration**: Security review gates in deployment pipelines
-- **Regular Audits**: Scheduled comprehensive security reviews
-- **Training Integration**: Developer security awareness enhancement
+## Step 4: Report Findings
 
-This security-focused code review provides comprehensive analysis to identify vulnerabilities, ensure best practices, and maintain high security standards throughout the development lifecycle.
+Present findings in this exact format:
+
+```
+SECURITY CODE REVIEW
+====================
+Target: <path reviewed>
+Depth:  <quick|standard|comprehensive>
+Files:  <count> analyzed
+
+FINDINGS
+--------
+
+[CRITICAL] <Title>
+  File: <absolute path>:<line number>
+  Issue: <one-line description of the vulnerability>
+  Evidence: <the offending code snippet>
+  Fix: <concrete remediation with code example>
+
+[HIGH] <Title>
+  File: <absolute path>:<line number>
+  Issue: <description>
+  Evidence: <code snippet>
+  Fix: <remediation>
+
+[MEDIUM] <Title>
+  ...
+
+[LOW] <Title>
+  ...
+
+SUMMARY
+-------
+Critical: <n>  High: <n>  Medium: <n>  Low: <n>
+
+<One paragraph with the most important action items>
+```
+
+Severity definitions:
+- **CRITICAL**: Exploitable vulnerability (injection, RCE, auth bypass, hardcoded secrets)
+- **HIGH**: Likely exploitable or high-impact issue (weak crypto, missing auth, SSRF)
+- **MEDIUM**: Defense-in-depth gap (broad exceptions, missing input validation, debug mode)
+- **LOW**: Best practice deviation (insecure defaults, minor information disclosure)
+
+If no findings are discovered, state that explicitly. Do not fabricate issues.
