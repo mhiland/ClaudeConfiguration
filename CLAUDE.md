@@ -28,58 +28,11 @@ Central Claude Code configuration with comprehensive development guidelines for 
 - Use input validation and sanitization at all layers
 - Run security scans: `pip-audit`, `bandit`
 
-## Claude Code Hooks Configuration
+## Quality Standards
 
-### Pre-commit Quality Checks
-Quality checks now run before git commits using PreToolUse hooks:
+All quality thresholds are defined in `~/.claude/quality-standards.json`:
 
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash(git commit*)",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-commit-quality.sh",
-            "timeout": 15000
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Quality Check Response Protocol
-When pre-commit hooks block a commit with quality issues:
-
-1. **Read the error output** - Hook provides specific fix commands
-2. **Run the suggested fixes** - Execute each command shown
-3. **Stage the fixed files** - `git add <fixed-files>`
-4. **Retry the commit** - Re-run the original commit command
-
-**Example workflow:**
-```bash
-# Commit blocked by quality issues
-git commit -m "fix: update feature"
-# Hook shows: "Run: autopep8 --in-place --max-line-length=120 file.py"
-
-# Fix the issues
-autopep8 --in-place --max-line-length=120 file.py
-git add file.py
-
-# Retry commit
-git commit -m "fix: update feature"
-```
-
-### Unified Quality Standards
-All quality tools now use shared standards from `~/.claude/quality-standards.json`:
-
-**Quality Standards Configuration:**
-- **Centralized Config**: All quality thresholds, line lengths, and tool settings are defined in `quality-standards.json`
-- **Python**: Pylint thresholds (Backend: 10.0, Frontend: 7.0, General: 8.0), Flake8, Autopep8 with 120-char lines
+- **Python**: Pylint thresholds (Backend: 10.0, Frontend: 10.0, General: 8.0), Flake8, Autopep8 with 120-char lines
 - **JavaScript**: JSHint validation for `frontend/static/js/` directory
 - **HTML**: html5lib validation for all templates
 - **Shell**: Shellcheck + Shfmt with 2-space indentation
@@ -89,15 +42,11 @@ All quality tools now use shared standards from `~/.claude/quality-standards.jso
 - **Shellcheck**: `sudo apt install shellcheck`
 - **Shfmt**: `go install mvdan.cc/sh/v3/cmd/shfmt@latest`
 
-### Quality Tools Integration
-All quality tools now use the shared library:
-- `hooks/pre-commit-quality.sh` - Pre-commit guard
-- `hooks/quality-check.sh` - PostToolUse hook
-- `commands/check.md` - Aggressive quality enforcement
-- `commands/quality/format.md` - Formatting command
-- `commands/quality/lint.md` - Linting command
-
-This ensures consistent quality standards across all tools and eliminates code duplication.
+### Available Custom Commands
+- `commands/code-review.md` - Security-focused code review
+- `commands/dependency-check.md` - Dependency vulnerability scanning
+- `commands/owasp-top-10-scan.md` - OWASP Top 10 scanning
+- `commands/threat-model.md` - STRIDE-based threat modeling
 
 ## Development Tools
 

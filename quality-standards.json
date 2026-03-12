@@ -2,7 +2,7 @@
   "python": {
     "pylint_thresholds": {
       "backend": "10.0",
-      "frontend": "7.0", 
+      "frontend": "10.0",
       "general": "8.0"
     },
     "line_length": 120,
