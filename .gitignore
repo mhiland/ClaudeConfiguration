@@ -35,11 +35,3 @@ history/
 .history/
 backups/
 .backups/
-local/
-projects/
-statsig/
-todos/
-.credentials.json
-ide/
-.claude/
-.serena/

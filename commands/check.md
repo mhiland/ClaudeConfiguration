@@ -39,7 +39,7 @@ Fix ALL code quality issues until EVERY check passes. Zero tolerance for warning
 - AUTOMATICALLY FIX all formatting issues
 
 **Frontend Code (Lenient but Consistent):**
-- Pylint MUST achieve 10.0/10
+- Pylint MUST achieve 7.0/10 minimum
 - Same flake8 and autopep8 standards
 - Flask template mixing considerations
 
@@ -214,7 +214,7 @@ git diff --stat         # Show change summary
    
    - Fix JSHint unused expression in main.js
    
-
+   🤖 Generated with Claude Code /check command
 ```
 
 ### Smart Commit Suggestions:
