@@ -8,13 +8,15 @@ Central Claude Code configuration hub that provides shared development guideline
 
 ## Configuration Components
 - **`base-config.md`** - Single source of truth for all development standards
-- **`commands/check.md`** - Source for the `/check` command (deployed to `~/.claude/commands/check.md`)
-- **`hooks/quality-check.sh`** - Quality check hook script (configured via `~/.claude/settings.json`)
+- **`skills/`** - Security and compliance skills (OWASP Top 10 audits/explainers plus deep-dive and compliance reviews)
+- **`agents/`** - Subagent definitions for the find → fix → verify review fleet (`scout`, `implementer`, `verifier`)
+- **`settings.json`** - Reference settings (permissions, env, model defaults)
 
 ## Important: Claude Code Config Directory
-Claude Code reads configuration from `~/.claude/`, NOT from this directory. To activate components:
-- **Commands**: Copy to `~/.claude/commands/` (e.g., `cp commands/check.md ~/.claude/commands/`)
-- **Hooks**: Reference this directory's scripts from `~/.claude/settings.json`
+Claude Code reads configuration from `~/.claude/`, NOT from this directory. This repo is the
+source of truth; activate a component by deploying it into `~/.claude/` (copy skills into
+`~/.claude/skills/`, agents into `~/.claude/agents/`, and merge any desired settings into
+`~/.claude/settings.json`).
 
 ## Repository-Specific Notes
 When modifying `base-config.md`, consider impact across all projects that reference it via symlinks. Changes propagate to all linked projects immediately.

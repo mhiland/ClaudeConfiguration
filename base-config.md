@@ -50,78 +50,6 @@ fi
 - Use input validation and sanitization at all layers
 - Run security scans: `pip-audit`, `bandit`
 
-## Claude Code Hooks Configuration
-
-### Automated Quality Checks
-Add to `~/.claude/settings.json` (the actual Claude Code config directory):
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.config/claude/hooks/quality-check.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Quality Check Hook
-Located at `~/.config/claude/hooks/quality-check.sh`:
-
-```bash
-#!/bin/bash
-# Auto-detect project type and run appropriate quality checks
-set -e
-
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${YELLOW}Running quality checks...${NC}"
-
-# Python projects
-if [[ -f "requirements.txt" || -f "pyproject.toml" || -f "setup.py" ]]; then
-    echo -e "${GREEN}Python project detected${NC}"
-    
-    # Python linting with pylint and flake8
-    if command -v pylint &> /dev/null; then
-        pylint --fail-under=8.0 . || (echo -e "${RED}Pylint issues found${NC}" && exit 1)
-    fi
-    if command -v flake8 &> /dev/null; then
-        flake8 --max-line-length=120 --ignore=E501,W503,W504 . || (echo -e "${RED}Flake8 issues found${NC}" && exit 1)
-    fi
-    if command -v autopep8 &> /dev/null; then
-        autopep8 --diff --recursive --max-line-length=120 . | grep -q . && (echo -e "${RED}Format issues. Run: autopep8 --in-place --recursive --max-line-length=120 .${NC}" && exit 1)
-    fi
-    
-    # Security scanning
-    if command -v pip-audit &> /dev/null; then
-        pip-audit || (echo -e "${RED}pip-audit found vulnerabilities${NC}" && exit 1)
-    fi
-fi
-
-# JavaScript/Node projects
-if [[ -f "package.json" ]]; then
-    echo -e "${GREEN}JavaScript project detected${NC}"
-    if command -v npm &> /dev/null && npm list eslint &> /dev/null; then
-        npm run lint || (echo -e "${RED}ESLint issues found${NC}" && exit 1)
-    fi
-fi
-
-
-echo -e "${GREEN}Quality checks passed!${NC}"
-```
-
 ## Development Tools
 
 ### Performance Profiling
@@ -164,19 +92,6 @@ rm -rf output/ frames/ temp/ *.png *.mp4 *.stats
 # Clean Python bytecode (alternative method)
 python -Bc "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[co]')]"
 ```
-
-## Custom Commands
-
-### `/check` - Aggressive Quality Enforcement
-Located in `~/.claude/commands/check.md`, this command implements zero-tolerance quality enforcement:
-
-- **Auto-fixes ALL formatting issues** with autopep8
-- **Enforces strict linting standards**: Backend 10.0/10 pylint, Frontend 10.0/10
-- **Spawns multiple agents** to fix complex issues in parallel
-- **Continues until EVERY check passes** - no partial fixes allowed
-- **Covers all tools**: pylint, flake8, autopep8, pip-audit, jshint, html5lib
-
-Usage: Type `/check` to trigger comprehensive quality enforcement that automatically fixes all detected issues.
 
 ## Development Workflow
 

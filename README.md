@@ -12,13 +12,10 @@ git clone https://github.com/mhiland/ClaudeConfiguration.git ~/.claude
 
 ## What's Included
 
-- **Code Quality**: Linting, type checking, testing standards with automated hooks
+- **Code Quality**: Linting, type checking, and testing standards
 - **Security**: Best practices for credentials, input validation, security scans
 - **Development Workflow**: Three-phase approach, task management, environment setup
-- **Tools & Commands**: Performance profiling, cleanup utilities, environment verification
 - **Language Guidelines**: Python (PEP 8), JavaScript (ES11+), Docker containerization
-- **Custom Commands**: `/check` command for aggressive quality enforcement
-- **Hooks System**: Automated quality checks triggered by file changes
 - **Security Skills**: Skills for auditing and explaining code against OWASP Top 10 standards plus deep-dive security and compliance reviews
 - **Review Agents**: Subagents for a multi-agent find → fix → verify review fleet
 
