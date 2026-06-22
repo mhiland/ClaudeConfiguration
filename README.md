@@ -20,6 +20,7 @@ git clone https://github.com/mhiland/ClaudeConfiguration.git ~/.claude
 - **Custom Commands**: `/check` command for aggressive quality enforcement
 - **Hooks System**: Automated quality checks triggered by file changes
 - **Security Skills**: Skills for auditing and explaining code against OWASP Top 10 standards plus deep-dive security and compliance reviews
+- **Review Agents**: Subagents for a multi-agent find → fix → verify review fleet
 
 ## OWASP Skills
 
@@ -50,3 +51,15 @@ Reasoning-driven reviews for specific attack classes and compliance frameworks:
 | `cbom-scan` | Generate a Cryptographic Bill of Materials + post-quantum risk assessment |
 | `slsa-compliance` | Assess and remediate a repo's SLSA build-provenance level |
 | `fleet-review` | Launch a multi-agent security or performance review fleet |
+
+## Review Agents
+
+The `agents/` directory contains subagent definitions for a project-agnostic
+find → fix → verify review fleet. They drive off the target repo's `CLAUDE.md` for
+project-specific rules and gates.
+
+| Agent | Role |
+| --- | --- |
+| `scout-reviewer` | Read-only scout — audits one scoped surface, grounds findings in quoted code |
+| `fix-implementer` | Implements one confirmed finding end-to-end on its own branch (build + test gated) |
+| `fix-verifier` | Read-only adversarial verifier — tries to refute a fix, returns APPROVE / FIX_REQUIRED |
