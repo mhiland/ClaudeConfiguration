@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Adversarially verifies that ONE fix actually closes its finding without regression — READ-ONLY (no Edit/Write). Spawn (one per fix, or several in parallel by lens) after implementer produces a branch; it tries to REFUTE the fix and returns APPROVE or FIX_REQUIRED with grounded findings. Handles both an initial diff review and an incremental re-review of a follow-up commit. Distinct from a finder (which surfaces issues in a surface): this judges whether a specific claimed fix holds. Use to gate a fix before merge.
+description: Adversarially verifies that ONE fix actually closes its finding without regression — READ-ONLY (no Edit/Write). Spawn (one per fix, or several in parallel by lens) after implementer produces a branch; it tries to REFUTE the fix and returns APPROVE or FIX_REQUIRED with grounded findings. Handles both an initial diff review and an incremental re-review of a follow-up commit. Distinct from a finder (which surfaces issues in a surface) — this judges whether a specific claimed fix holds. Use to gate a fix before merge.
 model: opus
 tools: Read, Grep, Glob, Bash
 ---
