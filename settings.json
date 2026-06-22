@@ -5,9 +5,6 @@
     "ANTHROPIC_SMALL_FAST_MODEL": "claude-haiku-4-5-20251001",
     "BASH_DEFAULT_TIMEOUT_MS": "300000",
     "CLAUDE_LOG_LEVEL": "error",
-    "CLAUDE_HOOK_TIMEOUT": "5000",
-    "CLAUDE_QUALITY_MODE": "file",
-    "CLAUDE_SECURITY_MODE": "balanced",
     "DISABLE_TELEMETRY": "true"
   },
   "includeCoAuthoredBy": false,
@@ -61,10 +58,6 @@
       "Bash(scp:*)",
       "Bash(rsync:*)"
     ]
-  },
-  "hooks": {
-    "PreToolUse": [],
-    "PostToolUse": []
   },
   "skipDangerousModePermissionPrompt": true,
   "mcpServers": {},

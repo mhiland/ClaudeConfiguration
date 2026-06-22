@@ -8,7 +8,7 @@ When setting up a new project to use this shared configuration:
 
 ```bash
 # 1. Create symlink to shared config in project root
-ln -sf /home/mhiland/.config/claude/base-config.md .claude-base.md
+ln -sf ~/.claude/base-config.md .claude-base.md
 
 # 2. Verify symlink creation
 ls -la .claude-base.md
@@ -199,7 +199,7 @@ Thumbs.db
 - Use `docs/` folder for feature documentation
 - Maintain module-specific guides (`backend/CLAUDE.md`, `frontend/CLAUDE.md`)
 - Update documentation when introducing new patterns or architectures
-- Link to shared config in projects: `ln -sf /home/mhiland/.config/claude/base-config.md .claude-base.md`
+- Link to shared config in projects: `ln -sf ~/.claude/base-config.md .claude-base.md`
 
 ### Documentation Update Guidelines
 
