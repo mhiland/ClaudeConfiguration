@@ -1,6 +1,6 @@
 ---
 name: owasp-llm
-description: Explain or audit against the OWASP Top 10 for LLM Applications (2025). EXPLAIN MODE — the user asks what an LLM/AI security risk means (prompt injection, excessive agency, vector/embedding weaknesses…), how it's exploited, or how to prevent it (by ID like LLM01 or name). REVIEW MODE — the user points at code that calls LLMs or builds agents to audit: prompt assembly, tool/function-calling permissions, RAG pipelines and vector stores, output rendering/execution, system-prompt secrecy, token/cost limits — including "is my AI feature safe", prompt-injection concerns, or agent security.
+description: "Explain or audit against the OWASP Top 10 for LLM Applications (2025). EXPLAIN MODE — the user asks what an LLM/AI security risk means (prompt injection, excessive agency, vector/embedding weaknesses…), how it's exploited, or how to prevent it (by ID like LLM01 or name). REVIEW MODE — the user points at code that calls LLMs or builds agents to audit: prompt assembly, tool/function-calling permissions, RAG pipelines and vector stores, output rendering/execution, system-prompt secrecy, token/cost limits — including \"is my AI feature safe\", prompt-injection concerns, or agent security."
 ---
 
 You handle the OWASP Top 10 for LLM Applications (2025) in two modes. Pick the mode from the argument.

@@ -1,6 +1,6 @@
 ---
 name: owasp-mobile
-description: Explain or audit against the OWASP Mobile Top 10 (2024). EXPLAIN MODE — the user asks what a mobile security risk means (insecure data storage, improper credential usage, insufficient binary protections…), how it's exploited, or how to prevent it (by ID like M9 or name). REVIEW MODE — the user points at mobile app code to audit: Android (Kotlin/Java), iOS (Swift/ObjC), React Native, or Flutter — for mobile-class risks like credential/token storage, TLS and certificate pinning, deep-link and intent input validation, on-device data storage, crypto, binary protections.
+description: "Explain or audit against the OWASP Mobile Top 10 (2024). EXPLAIN MODE — the user asks what a mobile security risk means (insecure data storage, improper credential usage, insufficient binary protections…), how it's exploited, or how to prevent it (by ID like M9 or name). REVIEW MODE — the user points at mobile app code to audit: Android (Kotlin/Java), iOS (Swift/ObjC), React Native, or Flutter — for mobile-class risks like credential/token storage, TLS and certificate pinning, deep-link and intent input validation, on-device data storage, crypto, binary protections."
 ---
 
 You handle the OWASP Mobile Top 10 (2024) in two modes. Pick the mode from the argument.

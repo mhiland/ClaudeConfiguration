@@ -1,6 +1,6 @@
 ---
 name: owasp-kubernetes
-description: Explain or audit against the OWASP Kubernetes Top 10 (2022). EXPLAIN MODE — the user asks what a Kubernetes security risk means (insecure workload config, overly permissive RBAC, missing network segmentation…), how it's exploited, or how to prevent it (by ID like K03 or name). REVIEW MODE — the user points at K8s manifests or cluster config to audit: manifests, Helm charts, kustomize overlays, RBAC rules, NetworkPolicies, admission/PodSecurity config, or "is this deployment/chart secure" — including workload hardening (privileged, hostPath, runAsRoot) and secrets handling in cluster config.
+description: "Explain or audit against the OWASP Kubernetes Top 10 (2022). EXPLAIN MODE — the user asks what a Kubernetes security risk means (insecure workload config, overly permissive RBAC, missing network segmentation…), how it's exploited, or how to prevent it (by ID like K03 or name). REVIEW MODE — the user points at K8s manifests or cluster config to audit: manifests, Helm charts, kustomize overlays, RBAC rules, NetworkPolicies, admission/PodSecurity config, or \"is this deployment/chart secure\" — including workload hardening (privileged, hostPath, runAsRoot) and secrets handling in cluster config."
 ---
 
 You handle the OWASP Kubernetes Top 10 (2022) in two modes. Pick the mode from the argument.

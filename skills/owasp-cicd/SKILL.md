@@ -1,6 +1,6 @@
 ---
 name: owasp-cicd
-description: Explain or audit against the OWASP Top 10 CI/CD Security Risks (2022). EXPLAIN MODE — the user asks what a CI/CD risk means (poisoned pipeline execution, dependency chain abuse, PBAC…), how it's exploited, or how to prevent it (by ID like CICD-SEC-04 or name). REVIEW MODE — the user points at pipeline config to audit: pipeline YAML (GitHub Actions, GitLab CI, Jenkins, CircleCI…), runner/executor config, release or publish jobs, pipeline secrets and token scopes, or third-party action/plugin usage — including "is this workflow safe", "review my pipeline", or PPE / poisoned-pipeline / pwn-request concerns. For artifact/dependency trust beyond the pipeline itself, prefer supply-chain-review.
+description: "Explain or audit against the OWASP Top 10 CI/CD Security Risks (2022). EXPLAIN MODE — the user asks what a CI/CD risk means (poisoned pipeline execution, dependency chain abuse, PBAC…), how it's exploited, or how to prevent it (by ID like CICD-SEC-04 or name). REVIEW MODE — the user points at pipeline config to audit: pipeline YAML (GitHub Actions, GitLab CI, Jenkins, CircleCI…), runner/executor config, release or publish jobs, pipeline secrets and token scopes, or third-party action/plugin usage — including \"is this workflow safe\", \"review my pipeline\", or PPE / poisoned-pipeline / pwn-request concerns. For artifact/dependency trust beyond the pipeline itself, prefer supply-chain-review."
 ---
 
 You handle the OWASP Top 10 CI/CD Security Risks (2022) in two modes. Pick the mode from the argument.

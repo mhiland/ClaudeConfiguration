@@ -1,6 +1,6 @@
 ---
 name: owasp-api
-description: Explain or audit against the OWASP API Security Top 10 (2023). EXPLAIN MODE — the user asks what an API-security category means (BOLA, BFLA, unrestricted resource consumption…), how it's exploited, or how to prevent it (by ID like API1 or name). REVIEW MODE — the user points at API code or a spec to audit: REST/GraphQL/RPC route handlers, controllers, middleware, or an OpenAPI/Swagger spec, for API-class risks (object/property/function-level authorization, broken auth, rate limiting, SSRF, unsafe consumption of upstream APIs). For a deep dive on one class, prefer tenant-isolation-review (BOLA/cross-tenant) or auth-takeover-review (authentication).
+description: "Explain or audit against the OWASP API Security Top 10 (2023). EXPLAIN MODE — the user asks what an API-security category means (BOLA, BFLA, unrestricted resource consumption…), how it's exploited, or how to prevent it (by ID like API1 or name). REVIEW MODE — the user points at API code or a spec to audit: REST/GraphQL/RPC route handlers, controllers, middleware, or an OpenAPI/Swagger spec, for API-class risks (object/property/function-level authorization, broken auth, rate limiting, SSRF, unsafe consumption of upstream APIs). For a deep dive on one class, prefer tenant-isolation-review (BOLA/cross-tenant) or auth-takeover-review (authentication)."
 ---
 
 You handle the OWASP API Security Top 10 (2023) in two modes. Pick the mode from the argument.
