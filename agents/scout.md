@@ -1,6 +1,6 @@
 ---
-name: scout-reviewer
-description: Read-only reconnaissance scout for ONE scoped review surface or attack class. Spawn in parallel — one per surface — for a fan-out audit (security sweep, perf review, docs fact-check, dependency review). It locates and grounds findings in quoted code; it does NOT fix them. Use when an orchestrator needs many independent, blast-radius-safe reviewers whose outputs merge cleanly. Pair with fix-implementer (implements a confirmed finding) and fix-verifier (judges a fix). For a single self-contained review that also files issues, prefer a dedicated review skill.
+name: scout
+description: Read-only reconnaissance scout for ONE scoped review surface or attack class. Spawn in parallel — one per surface — for a fan-out audit (security sweep, perf review, docs fact-check, dependency review). It locates and grounds findings in quoted code; it does NOT fix them. Use when an orchestrator needs many independent, blast-radius-safe reviewers whose outputs merge cleanly. Pair with implementer (implements a confirmed finding) and verifier (judges a fix). For a single self-contained review that also files issues, prefer a dedicated review skill.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill
 ---
 

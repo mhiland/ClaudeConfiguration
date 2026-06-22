@@ -60,6 +60,6 @@ project-specific rules and gates.
 
 | Agent | Role |
 | --- | --- |
-| `scout-reviewer` | Read-only scout — audits one scoped surface, grounds findings in quoted code |
-| `fix-implementer` | Implements one confirmed finding end-to-end on its own branch (build + test gated) |
-| `fix-verifier` | Read-only adversarial verifier — tries to refute a fix, returns APPROVE / FIX_REQUIRED |
+| `scout` | Read-only scout — audits one scoped surface, grounds findings in quoted code |
+| `implementer` | Implements one confirmed finding end-to-end on its own branch (build + test gated) |
+| `verifier` | Read-only adversarial verifier — tries to refute a fix, returns APPROVE / FIX_REQUIRED |

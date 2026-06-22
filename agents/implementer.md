@@ -1,6 +1,6 @@
 ---
-name: fix-implementer
-description: Implements ONE grounded finding or ticket end-to-end on its own branch with full project discipline — branch off the default branch, build + full test gate by exit code, regenerate gated artifacts, commit (do not push). Spawn with isolation:"worktree" for a fresh fix, or point it at an EXISTING worktree to address review findings on a branch already in flight (the follow-up-patcher mode). Reads whatever gates the repo's CLAUDE.md declares. Pair with fix-verifier to confirm the fix. Use after scout-reviewer has produced a confirmed finding.
+name: implementer
+description: Implements ONE grounded finding or ticket end-to-end on its own branch with full project discipline — branch off the default branch, build + full test gate by exit code, regenerate gated artifacts, commit (do not push). Spawn with isolation:"worktree" for a fresh fix, or point it at an EXISTING worktree to address review findings on a branch already in flight (the follow-up-patcher mode). Reads whatever gates the repo's CLAUDE.md declares. Pair with verifier to confirm the fix. Use after scout has produced a confirmed finding.
 model: sonnet
 tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 ---
