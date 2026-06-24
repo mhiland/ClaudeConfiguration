@@ -58,7 +58,7 @@ You ground claims in source for accuracy. You do not surface internal only mater
 5. **Prerequisites and substitutable examples.** Placeholders the reader swaps in (`example.com`, `default`), never a literal secret; tokens via environment variables in any committable file.
 6. **Audience separation.** Keep developer or end user ("use the thing") and operator or admin ("configure and run the thing") in separate sections or pages. Do not mix "pull a package" with "configure the storage backend."
 7. **Tables for reference, prose for tasks.** Exhaustive config (environment variables, flags, capabilities, settings keys) goes in a table with name, default, allowed values, effect. How-tos get short imperative prose. Never narrate a 40 row table.
-8. **Cross links over duplication.** Link a concept to its canonical page (a capability name to the RBAC page) instead of re explaining it.
+8. **Single source of truth; cross-link, don't duplicate.** *Define* each concept — a role, a capability, a setting, a proxy/cache behavior, an invariant, a limit — in full on exactly one canonical page; everywhere else names it in one line and links there (mention roles in a how-to by linking the RBAC page; do not restate what the roles are). A copied definition drifts the moment one side changes, so it is a future inaccuracy. *Naming* a concept in context, a tool-specific instantiation ("npm sends the token as a Bearer credential"), and the commands of a self-contained how-to are **not** duplication and stay on their page — never strip a page of the command, URL, or verify step it needs to stand alone. When the same one-line cue is unavoidable on several pages, keep it identical and link to the canonical page rather than re-wording it per page.
 
 ### How to word it
 - Write with a confident, positive, benefit oriented voice. Describe capabilities as strengths. The reader is often deciding whether to trust and adopt the product. Default to the affirmative; never oversell into inaccuracy.
@@ -71,7 +71,7 @@ You ground claims in source for accuracy. You do not surface internal only mater
 - Never show a real credential. Use placeholders or environment variables.
 
 ### Normalizing a set of pages
-Audit them against the template, then rewrite each to the same shape and conventions (placeholder host, URL form, terminology). Fix the cross cutting inaccuracies everywhere they appear, not on one page.
+Audit them against the template, then rewrite each to the same shape and conventions (placeholder host, URL form, terminology). Fix the cross cutting inaccuracies everywhere they appear, not on one page. Where the same concept is *defined* on several pages, pick one canonical home and reduce the others to a one-line cue + cross-link.
 
 ## Answerability gate (both modes)
 
@@ -95,8 +95,9 @@ Audit existing docs against the source and report findings (file and line, the w
 4. **Answerability:** run the gate above. Can the intended reader finish the task from the page alone?
 5. **Internal leakage:** internal paths, flags, private endpoints, secrets, or `file:line` references that reached a customer page.
 6. **Consistency:** do sibling pages share a template, terminology, and example conventions?
-7. **Completeness:** missing prerequisites, missing Verify step, missing conditionals, missing audience split, missing troubleshooting entry for a known error.
-8. **Wording:** passive or verbose prose, buried lead, undefined jargon, unexplained gotchas, literal secrets, a title nobody would search.
+7. **Duplication / single source of truth (cross-page):** is any concept *defined* in full on more than one page — its why/how, default, allowed values, or logic restated rather than linked? Each concept gets one canonical page; everywhere else is a one-line cue + cross-link. Separate a real violation (a definition copied — especially copies that already disagree) from legitimate repetition: a tool-specific instantiation, a self-contained how-to's own commands, or a brief landing-page summary that links out. Flag definitions a recent change duplicated or left behind. Judge across sibling pages, not one page alone.
+8. **Completeness:** missing prerequisites, missing Verify step, missing conditionals, missing audience split, missing troubleshooting entry for a known error.
+9. **Wording:** passive or verbose prose, buried lead, undefined jargon, unexplained gotchas, literal secrets, a title nobody would search.
 
 ## Verification before done (both modes)
 - Re-check every load bearing claim against the source you cited.
@@ -104,6 +105,7 @@ Audit existing docs against the source and report findings (file and line, the w
 - Run whatever gates the repo enforces (markdown lint, link check, spell, secret scan). Match the repo's CI config.
 - Confirm internal cross links and anchors resolve and code or commands in examples are correct.
 - Confirm no literal secrets, no internal only artifact on a customer page, no placeholder left in a misleading way.
+- Confirm the change did not re-define a concept that already has a canonical page; replace any copy with a one-line cue + cross-link.
 
 ## Anti-patterns (caught repeatedly in real docs)
 - Organizing a page around the code's structure (subsystems, modules) instead of the reader's task.
@@ -117,6 +119,7 @@ Audit existing docs against the source and report findings (file and line, the w
 - A reference table with no defaults and no allowed values, so it cannot be acted on.
 - Mixing operator config into a developer or end user quick start.
 - Prose that restates a table, or a table that should have been prose.
+- Re-defining a concept that already has a canonical page (roles, a setting, proxy behavior) instead of linking to it — two copies that drift apart. (Naming it in context or a tool-specific command is fine; copying its definition is not.)
 
 ## Building and tuning this skill (optional)
 Tune against real failures, not guesses. Write three scenarios this skill should pass (a setup page, a troubleshooting entry, a review that must catch an invented endpoint), run them, and add only the skill text needed to pass. The grounding fan out and the Answerability gate both run on the Task tool; if you reach for the same roles often, promote them to named subagents under `.claude/agents/` (for example a read only `docs-grounder` and a context free `docs-reader`) and have this skill call them by name.

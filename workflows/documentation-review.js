@@ -1,7 +1,7 @@
 export const meta = {
   name: 'documentation-review',
   description: 'Audit existing documentation against the source code (the `documentation` skill, REVIEW mode) as a fan-out: one read-only grounding reviewer per page checks every factual claim against the code, a fresh cold-reader runs the answerability gate on each page, then a Plan agent consolidates findings (incl. the cross-page consistency check) into a prioritized report. Read-only — reports, does not edit.',
-  whenToUse: 'Audit a set of docs (or a whole docs tree) for accuracy, drift, invented artifacts, internal leakage, completeness, and answerability. Stack-agnostic: operates in the current working directory. Pass pages via args.docs (array of paths), narrow discovery with args.path, or let it discover them; cap with args.max (default 40). Billed multi-agent fan-out.',
+  whenToUse: 'Audit a set of docs (or a whole docs tree) for accuracy, drift, invented artifacts, internal leakage, duplication / single source of truth, completeness, and answerability. Stack-agnostic: operates in the current working directory. Pass pages via args.docs (array of paths), narrow discovery with args.path, or let it discover them; cap with args.max (default 40). Billed multi-agent fan-out.',
   phases: [
     { title: 'Discover', detail: 'enumerate the documentation pages to review (skipped if args.docs given)' },
     { title: 'Audit', detail: 'one read-only grounding reviewer per page (claims vs source)' },
@@ -38,7 +38,7 @@ const AUDIT_SCHEMA = {
         properties: {
           docFile: { type: 'string' },
           docLine: { type: 'integer' },
-          category: { type: 'string', enum: ['accuracy', 'invented-artifact', 'drift', 'internal-leakage', 'completeness', 'wording'] },
+          category: { type: 'string', enum: ['accuracy', 'invented-artifact', 'drift', 'internal-leakage', 'duplication', 'completeness', 'wording'] },
           severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low'] },
           claim: { type: 'string', description: 'the doc text, quoted verbatim' },
           correction: { type: 'string', description: 'the true statement that matches the code' },
@@ -88,6 +88,7 @@ Page to audit: ${page}
    - invented-artifact — an identifier/event/field/endpoint named in the doc that does not exist in the source.
    - drift — a feature added/removed/changed since the doc was written.
    - internal-leakage — an internal path, private/unreleased endpoint, feature flag, secret, ticket number, or raw file:line citation that reached a reader-facing page.
+   - duplication (mark confidence=suspected) — this page DEFINES a portable concept in full (its why/how, default, allowed values, or logic) that likely has, or should have, a single canonical home on another page; raise it as a single-source-of-truth candidate for the synthesizer to confirm across pages. Do NOT flag a tool-specific instantiation ("npm sends a Bearer credential"), a self-contained how-to's own command/URL/verify step, or the mere naming of a concept — those legitimately repeat. You are blind to the other pages, so this is always suspected, never confirmed.
    - completeness — a missing prerequisite, missing Verify step, a conditional that actually trips users but is undocumented, or a missing audience split.
    - wording — buried lead, passive/verbose prose, undefined jargon, a literal secret in an example, a title nobody would search.
 
@@ -160,13 +161,14 @@ const sections = perPage.map((p) => {
 const report = await agent(
   `You are synthesizing a documentation REVIEW (the \`documentation\` skill, REVIEW mode) for this repository (operate in the current working directory). ` +
   `${perPage.length} page(s) were each audited for grounding accuracy against the source and run through the Answerability gate. Their structured results follow. ` +
-  `Do NOT re-audit the accuracy findings — consolidate them. You MAY read the pages themselves to perform the ONE cross-page check the per-page agents could not: consistency across sibling pages (a shared template/skeleton per content type, consistent terminology, and consistent example conventions such as the placeholder host and URL form).\n\n` +
+  `Do NOT re-audit the accuracy findings — consolidate them. You MAY read the pages themselves to perform the TWO cross-page checks the per-page agents could not: (a) consistency across sibling pages (a shared template/skeleton per content type, consistent terminology, and consistent example conventions such as the placeholder host and URL form); and (b) single source of truth — the same concept DEFINED in full (its why/how, default, allowed values, or logic) on more than one page, where everywhere but the canonical page should be a one-line cue + cross-link.\n\n` +
   `${sections}\n\n` +
   `Deliver:\n` +
-  `1. A prioritized findings table across all pages, ordered by the skill's priority: accuracy → invented-artifact → drift → internal-leakage → consistency → completeness → wording. For each: page:line, category, severity, the wrong claim, the correction, the source citation.\n` +
+  `1. A prioritized findings table across all pages, ordered by the skill's priority: accuracy → invented-artifact → drift → internal-leakage → consistency → duplication → completeness → wording. For each: page:line, category, severity, the wrong claim, the correction, the source citation.\n` +
   `2. Cross-page consistency findings (templates/terminology/example conventions that diverge between sibling pages), naming the pages involved.\n` +
-  `3. An answerability summary: which pages a fresh reader cannot complete the task from, and the specific gaps to close.\n` +
-  `4. A short "already accurate / well-structured" list so those don't regress.\n` +
+  `3. A single source of truth section: concepts DEFINED on multiple pages — for each, the pages that define it, the one canonical page it should live on, and which copies to reduce to a cue + cross-link. Confirm or reject the per-page "suspected duplication" candidates by checking them against the other pages. EXPLICITLY separate real violations (a definition copied — especially copies that already disagree) from legitimate parallel-page repetition (a tool-specific instantiation, a self-contained how-to's own command/URL/verify step, or a brief landing-page summary that links out) — do not report the legitimate cases as findings.\n` +
+  `4. An answerability summary: which pages a fresh reader cannot complete the task from, and the specific gaps to close.\n` +
+  `5. A short "already accurate / well-structured" list so those don't regress.\n` +
   `Keep it tight — substance, not re-justification. Your final text is data for the orchestrator.`,
   { label: 'synthesize:report', phase: 'Synthesize', agentType: 'Plan' }
 )
