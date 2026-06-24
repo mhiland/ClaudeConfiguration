@@ -1,7 +1,7 @@
 export const meta = {
   name: 'documentation-review',
   description: 'Audit existing documentation against the source code (the `documentation` skill, REVIEW mode) as a fan-out: one read-only grounding reviewer per page checks every factual claim against the code, a fresh cold-reader runs the answerability gate on each page, then a Plan agent consolidates findings (incl. the cross-page consistency check) into a prioritized report. Read-only — reports, does not edit.',
-  whenToUse: 'Audit a set of docs (or a whole docs tree) for accuracy, drift, invented artifacts, internal leakage, duplication / single source of truth, completeness, and answerability. Stack-agnostic: operates in the current working directory. Pass pages via args.docs (array of paths), narrow discovery with args.path, or let it discover them; cap with args.max (default 40). Billed multi-agent fan-out.',
+  whenToUse: 'Audit a set of docs (or a whole docs tree) for accuracy, drift, invented artifacts, internal leakage, duplication / single source of truth, completeness, and answerability. Stack-agnostic: operates in the current working directory by default, or pass args.root to review an external docs tree and args.source to ground accuracy against a separate source repo. Pass pages via args.docs (array of paths), narrow discovery with args.path, or let it discover them; cap with args.max (default 40). Billed multi-agent fan-out.',
   phases: [
     { title: 'Discover', detail: 'enumerate the documentation pages to review (skipped if args.docs given)' },
     { title: 'Audit', detail: 'one read-only grounding reviewer per page (claims vs source)' },
@@ -11,6 +11,13 @@ export const meta = {
 }
 
 const MAX_PAGES = (args && Number.isInteger(args.max) && args.max > 0) ? args.max : 40
+
+// Optional. By default the workflow operates in the current working directory. Set args.root to
+// review a docs tree in a DIFFERENT repo (discovery enumerates it and returns absolute paths, so
+// the audit/answerability/synthesis agents read it regardless of cwd). Set args.source to ground
+// accuracy/drift findings against a separate source-code repo (e.g. docs and code live apart).
+const ROOT = (args && typeof args.root === 'string' && args.root) ? args.root : null
+const SOURCE = (args && typeof args.source === 'string' && args.source) ? args.source : null
 
 const PAGES_SCHEMA = {
   type: 'object',
@@ -77,9 +84,10 @@ const ANSWERABILITY_SCHEMA = {
 }
 
 function auditPrompt(page) {
-  return `You are auditing ONE documentation page against the actual source code, in the discipline of the \`documentation\` skill's REVIEW mode. Operate in the current working directory. READ-ONLY — do not edit anything.
+  return `You are auditing ONE documentation page against the actual source code, in the discipline of the \`documentation\` skill's REVIEW mode. READ-ONLY — do not edit anything.
 
 Page to audit: ${page}
+${SOURCE ? `The product SOURCE CODE is at ${SOURCE} — read it there to ground accuracy / drift / invented-artifact claims (it is NOT the current working directory).` : `Find the source of truth in the current working directory's code (routing, config, handlers, schema).`}
 
 1. Read the page in full.
 2. For EVERY factual claim — a URL/route/path, a flag, a default, an allowed-value set / enum, a capability string, a limit, a "supported / not-supported" statement, or a named identifier/event/field/endpoint — find the source of truth in the code (routing, config, handlers, schema) and verify it. Quote the doc line and cite the code as file:line. Prior docs are a hypothesis, not ground truth.
@@ -116,11 +124,11 @@ if (!pages) {
   const path = args && args.path
   const focus = args && args.focus
   const discovery = await agent(
-    `Read-only. Enumerate the human-facing documentation pages in this repository (operate in the current working directory).` +
+    `Read-only. Enumerate the human-facing documentation pages in ${ROOT ? ROOT : 'this repository (operate in the current working directory)'}.` +
     (path ? ` Restrict to: ${path}.` : '') +
     (focus ? ` Focus on pages about: ${focus}.` : '') +
-    `\n\nTypical locations: docs/, doc/, a docs site under website/ or site/, README.md and other *.md at the repo root. INCLUDE reader-facing guides, setup/getting-started pages, how-tos, troubleshooting/error reference, FAQs, READMEs, and API/config/CLI reference. EXCLUDE source code, auto-generated changelogs, license files, node_modules, and vendored/third-party docs.\n\n` +
-    `Return the page file paths relative to the repo root, most important first. If there are more than ${MAX_PAGES}, return the ${MAX_PAGES} most important and set truncated=true with a one-line note on what was left out. Your final message is data for the orchestrator.`,
+    `\n\nTypical locations: docs/, doc/, a docs site under website/ or site/, README.md and other *.md at the root. INCLUDE reader-facing guides, setup/getting-started pages, how-tos, troubleshooting/error reference, FAQs, READMEs, and API/config/CLI reference. EXCLUDE source code, auto-generated changelogs, license files, node_modules, and vendored/third-party docs.\n\n` +
+    `Return ${ROOT ? 'ABSOLUTE' : 'repo-root-relative'} page file paths, most important first. If there are more than ${MAX_PAGES}, return the ${MAX_PAGES} most important and set truncated=true with a one-line note on what was left out. Your final message is data for the orchestrator.`,
     { label: 'discover:pages', phase: 'Discover', agentType: 'Explore', schema: PAGES_SCHEMA }
   )
   pages = (discovery && discovery.pages) || []
